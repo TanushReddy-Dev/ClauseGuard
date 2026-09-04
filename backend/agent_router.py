@@ -1,13 +1,11 @@
 import logging
 import os
+import asyncio
 from abc import ABC, abstractmethod
 from pathlib import Path
-import json
-import asyncio
 
 from dotenv import load_dotenv
-import google.generativeai as genai
-from google.generativeai.types import HarmCategory, HarmBlockThreshold
+from openai import AsyncOpenAI
 
 # Load .env
 load_dotenv(Path(__file__).resolve().parent / ".env")
@@ -15,40 +13,31 @@ load_dotenv(Path(__file__).resolve().parent / ".env.example")  # fallback defaul
 
 logger = logging.getLogger(__name__)
 
-# Configure Gemini
-api_key = os.environ.get("GEMINI_API_KEY")
+# Configure Groq
+api_key = os.environ.get("GROQ_API_KEY")
 if not api_key:
     raise RuntimeError(
-        "GEMINI_API_KEY environment variable is not set. "
+        "GROQ_API_KEY environment variable is not set. "
         "Export it before starting the server."
     )
-genai.configure(api_key=api_key)
-
 
 class LLMProvider(ABC):
     @abstractmethod
     async def complete(self, system: str, user: str, **kwargs) -> str:
         ...
 
-
-class GeminiProvider(LLMProvider):
-    """Concrete LLM provider backed by Google's Gemini API."""
+class GroqProvider(LLMProvider):
+    """Concrete LLM provider backed by Groq's ultra-fast API."""
 
     def __init__(self, model: str, *, temperature: float = 0.2, max_tokens: int = 8192) -> None:
         self._model_name = model
         self._temperature = temperature
         self._max_tokens = max_tokens
         
-        # Configure model parameters and disable safety filters since legal
-        # documents often trigger false positives for violence/harassment.
-        self._model = genai.GenerativeModel(
-            model_name=model,
-            safety_settings={
-                HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
-                HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
-                HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
-                HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
-            }
+        self._client = AsyncOpenAI(
+            base_url="https://api.groq.com/openai/v1",
+            api_key=api_key,
+            timeout=15.0,  # Strict timeout
         )
 
     @property
@@ -56,38 +45,35 @@ class GeminiProvider(LLMProvider):
         return self._model_name
 
     async def complete(self, system: str, user: str, **kwargs) -> str:
-        """Send a chat completion request and return the assistant's text."""
         temperature = kwargs.get("temperature", self._temperature)
         max_tokens = kwargs.get("max_tokens", self._max_tokens)
-        
-        # Gemini handles system instructions natively via generation_config
-        config = genai.types.GenerationConfig(
-            temperature=temperature,
-            max_output_tokens=max_tokens,
-        )
-        
-        # Combine system and user prompt for older Gemini models, or use system_instruction 
-        # if using the newer API. We'll use a combined prompt approach to be safe across versions.
-        combined_prompt = f"System Instructions:\n{system}\n\nUser Input:\n{user}"
 
         try:
-            # We use generate_content_async for async execution
-            # Prevent internal SDK retry sleep (on 429s) from hanging the backend
+            # Wrap the generation call in wait_for to prevent built-in retry sleep
             response = await asyncio.wait_for(
-                self._model.generate_content_async(
-                    combined_prompt,
-                    generation_config=config
+                self._client.chat.completions.create(
+                    model=self._model_name,
+                    messages=[
+                        {"role": "system", "content": system},
+                        {"role": "user", "content": user},
+                    ],
+                    temperature=temperature,
+                    max_tokens=max_tokens,
                 ),
-                timeout=10.0
+                timeout=15.0
             )
             
-            if not response.text:
-                raise ValueError(f"Gemini API returned an empty response for model {self._model_name!r}.")
+            if not response.choices:
+                raise ValueError(f"Groq API returned zero choices for model {self._model_name!r}.")
                 
-            return response.text.strip()
+            content = response.choices[0].message.content
+            if content is None:
+                raise ValueError(f"Groq API returned a choice with null content for model {self._model_name!r}.")
+                
+            return content.strip()
             
         except Exception as e:
-            logger.error(f"Gemini generation failed: {e}")
+            logger.error(f"Groq generation failed for {self._model_name}: {e}")
             raise
 
 
@@ -133,48 +119,47 @@ class FallbackProvider(LLMProvider):
         raise last_exc  # type: ignore[misc]
 
 
-def _make_provider(model: str, **kwargs) -> GeminiProvider:
-    """Convenience factory that creates a GeminiProvider."""
-    return GeminiProvider(model=model, **kwargs)
+def _make_provider(model: str, **kwargs) -> GroqProvider:
+    """Convenience factory that creates a GroqProvider."""
+    return GroqProvider(model=model, **kwargs)
 
 
 # ---------------------------------------------------------------------------
-# Provider registry — using Gemini 1.5 Flash for ultra-fast, lightweight 
-# processing across all agents, with 1.5 Flash-8B as a fallback.
+# Provider registry — using Groq for ultra-fast, lightweight processing
 # ---------------------------------------------------------------------------
 PROVIDER_REGISTRY: dict[str, LLMProvider] = {
     "extraction": FallbackProvider([
         _make_provider(
-            "models/gemini-3.5-flash-lite",
+            "qwen/qwen3.8-27b",
             temperature=0.1,   
             max_tokens=8192,   
         ),
         _make_provider(
-            "models/gemini-3.6-flash",
+            "openai/gpt-oss-20b",
             temperature=0.1,
-            max_tokens=4096,
+            max_tokens=8192,
         ),
     ]),
     "classification": FallbackProvider([
         _make_provider(
-            "models/gemini-3.5-flash-lite",
+            "qwen/qwen3.8-27b",
             temperature=0.0,   
             max_tokens=8192,
         ),
         _make_provider(
-            "models/gemini-3.6-flash",
+            "openai/gpt-oss-20b",
             temperature=0.0,
-            max_tokens=4096,
+            max_tokens=8192,
         ),
     ]),
     "explainer": FallbackProvider([
         _make_provider(
-            "models/gemini-3.5-flash-lite",
+            "openai/gpt-oss-120b",
             temperature=0.4,   
             max_tokens=8192,   
         ),
         _make_provider(
-            "models/gemini-3.6-flash",
+            "qwen/qwen3.8-27b",
             temperature=0.4,
             max_tokens=8192,
         ),

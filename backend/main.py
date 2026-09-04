@@ -7,6 +7,7 @@ import asyncio
 import pypdf
 import docx
 from fastapi import FastAPI, File, HTTPException, UploadFile, Body
+import openai
 
 from schemas import AnalysisReport, ClauseInput
 from pipeline import run_full_pipeline
@@ -20,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 # Silence noisy third-party loggers
 logging.getLogger("httpx").setLevel(logging.WARNING)
-logging.getLogger("google").setLevel(logging.WARNING)
+logging.getLogger("openai").setLevel(logging.WARNING)
 logging.getLogger("httpcore").setLevel(logging.WARNING)
 
 app = FastAPI(title="ClauseGuard API")
@@ -44,7 +45,7 @@ async def analyze_contract(body: ClauseInput):
     try:
         # 30-second guardrail for demo mode
         report = await run_full_pipeline(raw_text)
-    except Exception as exc:
+    except (asyncio.TimeoutError, openai.APITimeoutError, openai.RateLimitError, openai.APIStatusError, openai.APIConnectionError, Exception) as exc:
         logger.warning(f"[DEMO GUARD] Pipeline failed or timed out for text input ({type(exc).__name__}). Serving fallback payload.")
         return get_demo_fallback_report()
 
@@ -71,7 +72,7 @@ async def analyze_file(file: UploadFile = File(...)):
         try:
             reader = pypdf.PdfReader(io.BytesIO(raw_bytes))
             raw_text = "\n\n".join([page.extract_text() or "" for page in reader.pages])
-        except Exception as exc:
+        except (asyncio.TimeoutError, openai.APITimeoutError, openai.RateLimitError, openai.APIStatusError, openai.APIConnectionError, Exception) as exc:
             logger.exception("Failed to open PDF file: %s", filename)
             raise HTTPException(status_code=415, detail="The uploaded file is not a valid PDF or is corrupted.")
             
@@ -83,7 +84,7 @@ async def analyze_file(file: UploadFile = File(...)):
                 if para.text.strip():
                     extracted_text.append(para.text)
             raw_text = "\n\n".join(extracted_text)
-        except Exception as exc:
+        except (asyncio.TimeoutError, openai.APITimeoutError, openai.RateLimitError, openai.APIStatusError, openai.APIConnectionError, Exception) as exc:
             logger.exception("Failed to open DOCX file: %s", filename)
             raise HTTPException(status_code=415, detail="The uploaded file is not a valid DOCX or is corrupted.")
             
@@ -96,7 +97,7 @@ async def analyze_file(file: UploadFile = File(...)):
     try:
         # 30-second guardrail for demo mode
         report = await run_full_pipeline(raw_text)
-    except Exception as exc:
+    except (asyncio.TimeoutError, openai.APITimeoutError, openai.RateLimitError, openai.APIStatusError, openai.APIConnectionError, Exception) as exc:
         logger.warning(f"[DEMO GUARD] Pipeline failed or timed out for {file.filename} ({type(exc).__name__}). Serving fallback payload.")
         return get_demo_fallback_report()
 
