@@ -51,8 +51,8 @@ async def analyze_contract(file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail="Uploaded file contains no readable text.")
 
     try:
-        # 10-second guardrail for demo mode
-        report = await asyncio.wait_for(run_full_pipeline(raw_text), timeout=10.0)
+        # 30-second guardrail for demo mode
+        report = await asyncio.wait_for(run_full_pipeline(raw_text), timeout=30.0)
     except (asyncio.TimeoutError, openai.APITimeoutError, openai.RateLimitError, openai.APIStatusError, openai.APIConnectionError, Exception) as exc:
         logger.warning(f"[DEMO GUARD] Pipeline failed or timed out for {file.filename} ({type(exc).__name__}). Serving fallback payload.")
         return get_demo_fallback_report()
@@ -103,8 +103,8 @@ async def analyze_file(file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail="Uploaded file contains no readable text. It might be a scanned image without OCR.")
 
     try:
-        # 10-second guardrail for demo mode
-        report = await asyncio.wait_for(run_full_pipeline(raw_text), timeout=10.0)
+        # 30-second guardrail for demo mode
+        report = await asyncio.wait_for(run_full_pipeline(raw_text), timeout=30.0)
     except (asyncio.TimeoutError, openai.APITimeoutError, openai.RateLimitError, openai.APIStatusError, openai.APIConnectionError, Exception) as exc:
         logger.warning(f"[DEMO GUARD] Pipeline failed or timed out for {file.filename} ({type(exc).__name__}). Serving fallback payload.")
         return get_demo_fallback_report()
