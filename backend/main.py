@@ -15,9 +15,14 @@ from demo_fallback import get_demo_fallback_report
 
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    format="%(message)s",  # cleaner format
 )
 logger = logging.getLogger(__name__)
+
+# Silence noisy third-party loggers
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("openai").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
 
 app = FastAPI(title="ClauseGuard API")
 

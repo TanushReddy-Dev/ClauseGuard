@@ -28,9 +28,14 @@ from pipeline import run_full_pipeline
 
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    format="%(message)s",
 )
 logger = logging.getLogger("prewarm")
+
+# Silence noisy third-party loggers
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("openai").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
 
 # ---------------------------------------------------------------------------
 # Demo contracts — realistic sample text covering common risky clauses.
