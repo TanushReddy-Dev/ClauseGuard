@@ -292,26 +292,6 @@ fun CaptureScreen(vm: ContractViewModel = viewModel(), onBack: () -> Unit = {}) 
             )
         }
 
-        // ── Shimmer Placeholders ──
-        if (uiState is UiState.Loading) {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(top = 100.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                userScrollEnabled = false
-            ) {
-                items(4) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 8.dp)
-                            .height(100.dp)
-                            .clip(RoundedCornerShape(16.dp))
-                            .shimmerEffect()
-                    )
-                }
-            }
-        }
 
         // ── Frosted-glass scanning overlay ──
         ScanningOverlay(isLoading = uiState is UiState.Loading)
