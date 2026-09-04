@@ -1,0 +1,16 @@
+clause_text,category,severity_weight,source_citation
+"Company may terminate this agreement at any time without cause upon written notice to Contractor.",unilateral_termination,0.85,NLRB Guidelines § 2.3
+"Either party may terminate this agreement for any reason with 30 days prior written notice.",unilateral_termination,0.50,Restatement (Second) of Contracts § 241
+"Company reserves the right to terminate this agreement immediately and without notice if Contractor fails to meet performance benchmarks as solely determined by the Company.",unilateral_termination,0.95,DOL Fact Sheet #13
+"Contractor shall not receive payment for services rendered until Company has received payment from the end client.",wage_withholding,0.90,FLSA 29 U.S.C. § 206
+"Company may withhold up to 20% of Contractor's earned compensation as a performance guarantee to be released at the Company's sole discretion.",wage_withholding,0.92,State Wage Payment Laws Compilation
+"Payment of final invoice shall be contingent upon Contractor completing a satisfactory exit interview and returning all Company property.",wage_withholding,0.70,DOL WHD Opinion Letter FLSA2019-6
+"Contractor agrees not to engage in any competing business or employment within a 150-mile radius for a period of 24 months following termination.",non_compete_overreach,0.93,FTC Non-Compete Rule 16 CFR 910
+"For a period of 12 months after termination Contractor shall not solicit or accept work from any client of the Company or its affiliates worldwide.",non_compete_overreach,0.88,Restatement of Employment Law § 8.06
+"Contractor shall not directly or indirectly engage in any business that is competitive with the Company during the term of this agreement and for 36 months thereafter.",non_compete_overreach,0.96,FTC Non-Compete Rule 16 CFR 910
+"Any dispute arising under this agreement shall be resolved exclusively through binding arbitration administered by a provider selected by the Company.",forced_arbitration,0.87,Federal Arbitration Act 9 U.S.C. § 2
+"Contractor waives all rights to participate in class action proceedings and agrees that all claims shall be arbitrated on an individual basis only.",forced_arbitration,0.91,Epic Systems Corp. v. Lewis 584 U.S. 497
+"All disputes shall be submitted to final and binding arbitration in a jurisdiction chosen by the Company with each party bearing its own costs.",forced_arbitration,0.82,AAA Employment Arbitration Rules R-1
+"Company shall own all intellectual property and work product created by Contractor during the term of this agreement including any work created outside normal working hours.",ip_assignment,0.80,Copyright Act 17 U.S.C. § 201(b)
+"Contractor agrees to indemnify and hold harmless the Company against any and all claims liabilities and expenses without limitation arising from Contractor's performance of services.",liability_indemnification,0.78,UCC § 2-316
+"This agreement shall be governed by the laws of a jurisdiction selected by the Company at its sole discretion and Contractor consents to exclusive jurisdiction therein.",jurisdiction_abuse,0.75,Carnival Cruise Lines v. Shute 499 U.S. 585
