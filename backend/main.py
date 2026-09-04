@@ -7,7 +7,6 @@ import asyncio
 import pypdf
 import docx
 from fastapi import FastAPI, File, HTTPException, UploadFile, Body
-import openai
 
 from schemas import AnalysisReport, ClauseInput
 from pipeline import run_full_pipeline
@@ -43,9 +42,8 @@ async def analyze_contract(body: ClauseInput):
         raise HTTPException(status_code=400, detail="Provided text is empty.")
 
     try:
-        # 30-second guardrail for demo mode
         report = await run_full_pipeline(raw_text)
-    except (asyncio.TimeoutError, openai.APITimeoutError, openai.RateLimitError, openai.APIStatusError, openai.APIConnectionError, Exception) as exc:
+    except Exception as exc:
         logger.warning(f"[DEMO GUARD] Pipeline failed or timed out for text input ({type(exc).__name__}). Serving fallback payload.")
         return get_demo_fallback_report()
 
@@ -72,7 +70,7 @@ async def analyze_file(file: UploadFile = File(...)):
         try:
             reader = pypdf.PdfReader(io.BytesIO(raw_bytes))
             raw_text = "\n\n".join([page.extract_text() or "" for page in reader.pages])
-        except (asyncio.TimeoutError, openai.APITimeoutError, openai.RateLimitError, openai.APIStatusError, openai.APIConnectionError, Exception) as exc:
+        except Exception as exc:
             logger.exception("Failed to open PDF file: %s", filename)
             raise HTTPException(status_code=415, detail="The uploaded file is not a valid PDF or is corrupted.")
             
@@ -84,7 +82,7 @@ async def analyze_file(file: UploadFile = File(...)):
                 if para.text.strip():
                     extracted_text.append(para.text)
             raw_text = "\n\n".join(extracted_text)
-        except (asyncio.TimeoutError, openai.APITimeoutError, openai.RateLimitError, openai.APIStatusError, openai.APIConnectionError, Exception) as exc:
+        except Exception as exc:
             logger.exception("Failed to open DOCX file: %s", filename)
             raise HTTPException(status_code=415, detail="The uploaded file is not a valid DOCX or is corrupted.")
             
@@ -95,10 +93,9 @@ async def analyze_file(file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail="Uploaded file contains no readable text. It might be a scanned image without OCR.")
 
     try:
-        # 30-second guardrail for demo mode
         report = await run_full_pipeline(raw_text)
-    except (asyncio.TimeoutError, openai.APITimeoutError, openai.RateLimitError, openai.APIStatusError, openai.APIConnectionError, Exception) as exc:
-        logger.warning(f"[DEMO GUARD] Pipeline failed or timed out for {file.filename} ({type(exc).__name__}). Serving fallback payload.")
+    except Exception as exc:
+        logger.warning(f"[DEMO GUARD] Pipeline failed for {file.filename} ({type(exc).__name__}). Serving fallback payload.")
         return get_demo_fallback_report()
 
     return report
