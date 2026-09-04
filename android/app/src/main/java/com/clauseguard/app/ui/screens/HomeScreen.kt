@@ -122,7 +122,7 @@ fun HomeScreen(
                 Box(
                     modifier = Modifier
                         .size(44.dp)
-                        .background(Color(0xFF5E5CE6), CircleShape), // Solid color
+                        .background(Color(0xFF0A84FF), CircleShape), // Solid color
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -153,7 +153,7 @@ fun HomeScreen(
                         Box(
                             modifier = Modifier
                                 .size(80.dp)
-                                .background(Color(0xFF5E5CE6), CircleShape), // Solid color
+                                .background(Color(0xFF0A84FF), CircleShape), // Solid color
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(Icons.Rounded.Warning, contentDescription = null, tint = Color.White, modifier = Modifier.size(32.dp))
@@ -296,7 +296,7 @@ fun HomeScreen(
                     haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                     isFabExpanded = !isFabExpanded
                 },
-                containerColor = Color(0xFF5E5CE6),
+                containerColor = Color(0xFF0A84FF),
                 contentColor = Color.White,
                 shape = CircleShape,
                 modifier = Modifier.size(56.dp)
@@ -326,12 +326,6 @@ private fun VaultCard(contract: ContractEntity, onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 8.dp)
-            .shadow(
-                elevation = 32.dp, // Emil: Softer, deeper shadows
-                spotColor = Color.Black.copy(alpha = 0.4f),
-                ambientColor = Color.Transparent,
-                shape = RoundedCornerShape(24.dp)
-            )
             .background(
                 color = Color.White.copy(alpha = 0.06f),
                 shape = RoundedCornerShape(24.dp)

@@ -148,10 +148,10 @@ fun ResultsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp)
-                        .shadow(elevation = 16.dp, spotColor = Color(0xFF5E5CE6).copy(alpha = 0.5f), ambientColor = Color.Transparent),
+                        ,
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF5E5CE6),
+                        containerColor = Color(0xFF0A84FF),
                         contentColor = Color.White
                     )
                 ) {
@@ -190,7 +190,7 @@ fun ResultsScreen(
                     Box(
                         modifier = Modifier
                             .size(48.dp)
-                            .background(Color(0xFF5E5CE6), CircleShape), // Solid color
+                            .background(Color(0xFF0A84FF), CircleShape), // Solid color
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(imageVector = Icons.Rounded.Info, contentDescription = null, tint = Color.White)
@@ -279,12 +279,6 @@ private fun ClauseCard(clause: ClauseRiskScore, globalNegotiationScript: String)
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp)
-            .shadow(
-                elevation = 32.dp, // Emil: Softer, deeper shadows
-                spotColor = Color.Black.copy(alpha = 0.4f),
-                ambientColor = Color.Transparent,
-                shape = RoundedCornerShape(24.dp)
-            )
             .background(
                 color = Color.White.copy(alpha = 0.06f),
                 shape = RoundedCornerShape(24.dp)
