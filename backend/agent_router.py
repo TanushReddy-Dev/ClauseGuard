@@ -164,7 +164,12 @@ PROVIDER_REGISTRY: dict[str, LLMProvider] = {
         _make_provider(
             "Qwen/Qwen2.5-7B-Instruct",
             temperature=0.1,   # low temperature for faithful OCR cleanup
-            max_tokens=4096,
+            max_tokens=8192,   # Increased for larger PDFs
+        ),
+        _make_provider(
+            "Qwen/Qwen2.5-32B-Instruct", # Step up to larger context handling
+            temperature=0.1,
+            max_tokens=8192,
         ),
         _make_provider(
             "Qwen/Qwen2.5-3B-Instruct",
@@ -176,7 +181,12 @@ PROVIDER_REGISTRY: dict[str, LLMProvider] = {
         _make_provider(
             "Qwen/Qwen2.5-7B-Instruct",
             temperature=0.0,   # deterministic classification
-            max_tokens=4096,
+            max_tokens=8192,
+        ),
+        _make_provider(
+            "Qwen/Qwen2.5-32B-Instruct",
+            temperature=0.0,
+            max_tokens=8192,
         ),
         _make_provider(
             "Qwen/Qwen2.5-3B-Instruct",
@@ -186,14 +196,19 @@ PROVIDER_REGISTRY: dict[str, LLMProvider] = {
     ]),
     "explainer": FallbackProvider([
         _make_provider(
+            "Qwen/Qwen2.5-72B-Instruct", # Largest model for massive context analysis
+            temperature=0.4,
+            max_tokens=32768,
+        ),
+        _make_provider(
             "Qwen/Qwen2.5-32B-Instruct",
             temperature=0.4,   # slightly creative for natural language output
-            max_tokens=8192,   # explainer produces longer narrative text
+            max_tokens=16384,   # explainer produces longer narrative text
         ),
         _make_provider(
             "Qwen/Qwen2.5-7B-Instruct",
             temperature=0.4,
-            max_tokens=4096,
+            max_tokens=8192,
         ),
     ]),
 }
