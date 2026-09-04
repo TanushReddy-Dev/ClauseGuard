@@ -332,13 +332,10 @@ async def run_full_pipeline(raw_ocr_text: str) -> AnalysisReport:
     ]
 
     try:
-        explainer_result = await asyncio.wait_for(
-            run_explainer_agent(flagged_for_explainer, overall_risk),
-            timeout=5.0
-        )
+        explainer_result = await run_explainer_agent(flagged_for_explainer, overall_risk)
         logger.info("Stage 6 complete: explainer agent produced summary.")
     except Exception as exc:
-        logger.warning("[WARNING] Stage 6 Explainer timed out or failed: %s. Using fallback summary.", exc)
+        logger.warning("[WARNING] Stage 6 Explainer failed: %s. Using fallback summary.", exc)
         explainer_result = {
             "summary": "Contract analysis complete. Please review the individually flagged clauses below for specific risk details.",
             "negotiation_script": "No negotiation points generated due to analysis timeout."

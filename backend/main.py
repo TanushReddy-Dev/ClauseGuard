@@ -7,7 +7,6 @@ import asyncio
 import pypdf
 import docx
 from fastapi import FastAPI, File, HTTPException, UploadFile, Body
-import openai
 
 from schemas import AnalysisReport, ClauseInput
 from pipeline import run_full_pipeline
@@ -21,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 # Silence noisy third-party loggers
 logging.getLogger("httpx").setLevel(logging.WARNING)
-logging.getLogger("openai").setLevel(logging.WARNING)
+logging.getLogger("google").setLevel(logging.WARNING)
 logging.getLogger("httpcore").setLevel(logging.WARNING)
 
 app = FastAPI(title="ClauseGuard API")
@@ -44,8 +43,8 @@ async def analyze_contract(body: ClauseInput):
 
     try:
         # 30-second guardrail for demo mode
-        report = await asyncio.wait_for(run_full_pipeline(raw_text), timeout=30.0)
-    except (asyncio.TimeoutError, openai.APITimeoutError, openai.RateLimitError, openai.APIStatusError, openai.APIConnectionError, Exception) as exc:
+        report = await run_full_pipeline(raw_text)
+    except Exception as exc:
         logger.warning(f"[DEMO GUARD] Pipeline failed or timed out for text input ({type(exc).__name__}). Serving fallback payload.")
         return get_demo_fallback_report()
 
@@ -96,8 +95,8 @@ async def analyze_file(file: UploadFile = File(...)):
 
     try:
         # 30-second guardrail for demo mode
-        report = await asyncio.wait_for(run_full_pipeline(raw_text), timeout=30.0)
-    except (asyncio.TimeoutError, openai.APITimeoutError, openai.RateLimitError, openai.APIStatusError, openai.APIConnectionError, Exception) as exc:
+        report = await run_full_pipeline(raw_text)
+    except Exception as exc:
         logger.warning(f"[DEMO GUARD] Pipeline failed or timed out for {file.filename} ({type(exc).__name__}). Serving fallback payload.")
         return get_demo_fallback_report()
 

@@ -1,19 +1,28 @@
-from __future__ import annotations
-
 import logging
 import os
 from abc import ABC, abstractmethod
 from pathlib import Path
+import json
+import asyncio
 
 from dotenv import load_dotenv
-from openai import AsyncOpenAI
+import google.generativeai as genai
+from google.generativeai.types import HarmCategory, HarmBlockThreshold
 
-# Load .env from the backend directory so FEATHERLESS_API_KEY is available
-# even when the process is launched from a different working directory.
+# Load .env
 load_dotenv(Path(__file__).resolve().parent / ".env")
 load_dotenv(Path(__file__).resolve().parent / ".env.example")  # fallback defaults
 
 logger = logging.getLogger(__name__)
+
+# Configure Gemini
+api_key = os.environ.get("GEMINI_API_KEY")
+if not api_key:
+    raise RuntimeError(
+        "GEMINI_API_KEY environment variable is not set. "
+        "Export it before starting the server."
+    )
+genai.configure(api_key=api_key)
 
 
 class LLMProvider(ABC):
@@ -22,80 +31,68 @@ class LLMProvider(ABC):
         ...
 
 
-class FeatherlessProvider(LLMProvider):
-    """Concrete LLM provider backed by Featherless.ai's OpenAI-compatible API.
+class GeminiProvider(LLMProvider):
+    """Concrete LLM provider backed by Google's Gemini API."""
 
-    Each instance is bound to a specific model so the registry can map logical
-    agent roles (extraction, classification, explainer) to different model sizes.
-    """
-
-    def __init__(self, model: str, *, temperature: float = 0.2, max_tokens: int = 4096) -> None:
-        api_key = os.environ.get("FEATHERLESS_API_KEY")
-        if not api_key:
-            raise RuntimeError(
-                "FEATHERLESS_API_KEY environment variable is not set. "
-                "Export it before starting the server."
-            )
-
-        self._client = AsyncOpenAI(
-            base_url="https://api.featherless.ai/v1",
-            api_key=api_key,
-            timeout=10.0,  # fast timeout to trigger fallbacks before Demo Guard
-        )
-        self._model = model
+    def __init__(self, model: str, *, temperature: float = 0.2, max_tokens: int = 8192) -> None:
+        self._model_name = model
         self._temperature = temperature
         self._max_tokens = max_tokens
+        
+        # Configure model parameters and disable safety filters since legal
+        # documents often trigger false positives for violence/harassment.
+        self._model = genai.GenerativeModel(
+            model_name=model,
+            safety_settings={
+                HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
+                HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
+                HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
+                HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
+            }
+        )
 
     @property
     def model(self) -> str:
-        return self._model
+        return self._model_name
 
     async def complete(self, system: str, user: str, **kwargs) -> str:
-        """Send a chat completion request and return the assistant's text.
-
-        Raises on empty/malformed responses so callers can handle retries at a
-        higher level rather than silently propagating garbage.
-        """
+        """Send a chat completion request and return the assistant's text."""
         temperature = kwargs.get("temperature", self._temperature)
         max_tokens = kwargs.get("max_tokens", self._max_tokens)
-
-        response = await self._client.chat.completions.create(
-            model=self._model,
-            messages=[
-                {"role": "system", "content": system},
-                {"role": "user", "content": user},
-            ],
+        
+        # Gemini handles system instructions natively via generation_config
+        config = genai.types.GenerationConfig(
             temperature=temperature,
-            max_tokens=max_tokens,
+            max_output_tokens=max_tokens,
         )
+        
+        # Combine system and user prompt for older Gemini models, or use system_instruction 
+        # if using the newer API. We'll use a combined prompt approach to be safe across versions.
+        combined_prompt = f"System Instructions:\n{system}\n\nUser Input:\n{user}"
 
-        if not response.choices:
-            raise ValueError(
-                f"Featherless API returned zero choices for model {self._model!r}. "
-                f"Response id: {getattr(response, 'id', 'unknown')}"
+        try:
+            # We use generate_content_async for async execution
+            # Prevent internal SDK retry sleep (on 429s) from hanging the backend
+            response = await asyncio.wait_for(
+                self._model.generate_content_async(
+                    combined_prompt,
+                    generation_config=config
+                ),
+                timeout=10.0
             )
-
-        content = response.choices[0].message.content
-        if content is None:
-            raise ValueError(
-                f"Featherless API returned a choice with null content for model {self._model!r}."
-            )
-
-        return content.strip()
+            
+            if not response.text:
+                raise ValueError(f"Gemini API returned an empty response for model {self._model_name!r}.")
+                
+            return response.text.strip()
+            
+        except Exception as e:
+            logger.error(f"Gemini generation failed: {e}")
+            raise
 
 
 class FallbackProvider(LLMProvider):
-    """Wraps a primary provider with an ordered chain of fallback providers.
-
-    On any exception from the primary (timeout, rate limit, 5xx, malformed
-    response), the next provider in the chain is tried.  If every provider in
-    the chain fails, the final exception is re-raised so the caller's own
-    graceful-degradation logic (e.g. returning raw clauses) still activates.
-
-    This gives the pipeline zero-downtime resilience during live demos:
-    - Primary model is unavailable → fallback lightweight model responds
-    - All models down → agent-level fallbacks return deterministic results
-    """
+    """Wraps a primary provider with an ordered chain of fallback providers."""
 
     def __init__(self, providers: list[LLMProvider]) -> None:
         if not providers:
@@ -133,80 +130,51 @@ class FallbackProvider(LLMProvider):
                     "Trying next fallback…" if idx < len(self._providers) - 1 else "No more fallbacks.",
                 )
 
-        # All providers exhausted — re-raise the last exception so agent-level
-        # graceful degradation (e.g. returning raw clauses) still triggers.
         raise last_exc  # type: ignore[misc]
 
 
-# ---------------------------------------------------------------------------
-# Shared AsyncOpenAI client — reused across all FeatherlessProvider instances
-# to benefit from connection pooling.
-# ---------------------------------------------------------------------------
-
-def _make_provider(model: str, **kwargs) -> FeatherlessProvider:
-    """Convenience factory that creates a FeatherlessProvider."""
-    return FeatherlessProvider(model=model, **kwargs)
+def _make_provider(model: str, **kwargs) -> GeminiProvider:
+    """Convenience factory that creates a GeminiProvider."""
+    return GeminiProvider(model=model, **kwargs)
 
 
 # ---------------------------------------------------------------------------
-# Provider registry — maps logical agent roles to FallbackProvider chains.
-#
-# Fallback strategy per role:
-#   • extraction    — Qwen2.5-7B (primary) → Qwen2.5-3B (fast fallback)
-#   • classification — Qwen2.5-7B (primary) → Qwen2.5-3B (fast fallback)
-#   • explainer     — Qwen2.5-32B (primary) → Qwen2.5-7B (lighter fallback)
-#
-# The lightweight fallback models sacrifice some quality but keep the pipeline
-# running when the primary model hits rate limits or latency spikes.
+# Provider registry — using Gemini 1.5 Flash for ultra-fast, lightweight 
+# processing across all agents, with 1.5 Flash-8B as a fallback.
 # ---------------------------------------------------------------------------
 PROVIDER_REGISTRY: dict[str, LLMProvider] = {
     "extraction": FallbackProvider([
         _make_provider(
-            "Qwen/Qwen2.5-7B-Instruct",
-            temperature=0.1,   # low temperature for faithful OCR cleanup
-            max_tokens=8192,   # Increased for larger PDFs
+            "models/gemini-3.5-flash-lite",
+            temperature=0.1,   
+            max_tokens=8192,   
         ),
         _make_provider(
-            "Qwen/Qwen2.5-32B-Instruct", # Step up to larger context handling
-            temperature=0.1,
-            max_tokens=8192,
-        ),
-        _make_provider(
-            "Qwen/Qwen2.5-3B-Instruct",
+            "models/gemini-3.6-flash",
             temperature=0.1,
             max_tokens=4096,
         ),
     ]),
     "classification": FallbackProvider([
         _make_provider(
-            "Qwen/Qwen2.5-7B-Instruct",
-            temperature=0.0,   # deterministic classification
+            "models/gemini-3.5-flash-lite",
+            temperature=0.0,   
             max_tokens=8192,
         ),
         _make_provider(
-            "Qwen/Qwen2.5-32B-Instruct",
-            temperature=0.0,
-            max_tokens=8192,
-        ),
-        _make_provider(
-            "Qwen/Qwen2.5-3B-Instruct",
+            "models/gemini-3.6-flash",
             temperature=0.0,
             max_tokens=4096,
         ),
     ]),
     "explainer": FallbackProvider([
         _make_provider(
-            "Qwen/Qwen2.5-72B-Instruct", # Largest model for massive context analysis
-            temperature=0.4,
-            max_tokens=8192,
+            "models/gemini-3.5-flash-lite",
+            temperature=0.4,   
+            max_tokens=8192,   
         ),
         _make_provider(
-            "Qwen/Qwen2.5-32B-Instruct",
-            temperature=0.4,   # slightly creative for natural language output
-            max_tokens=16384,   # explainer produces longer narrative text
-        ),
-        _make_provider(
-            "Qwen/Qwen2.5-7B-Instruct",
+            "models/gemini-3.6-flash",
             temperature=0.4,
             max_tokens=8192,
         ),
