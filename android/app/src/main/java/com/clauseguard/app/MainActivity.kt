@@ -18,7 +18,9 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
+import com.clauseguard.app.ui.components.SplashScreen
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -33,6 +35,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -55,6 +58,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -62,6 +66,9 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import com.clauseguard.app.ui.components.shimmerEffect
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -78,6 +85,9 @@ import com.clauseguard.app.network.NetworkClient
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
+import com.clauseguard.app.ui.components.ClauseCard
+import com.clauseguard.app.ui.components.ErrorState
+import com.clauseguard.app.ui.components.ScanningOverlay
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -86,7 +96,23 @@ class MainActivity : ComponentActivity() {
         setContent {
             MaterialTheme(colorScheme = darkColorScheme()) {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    CaptureScreen()
+                    var showSplash by remember { mutableStateOf(true) }
+
+                    // Crossfade handles the smooth fade-out of the splash screen
+                    // and fade-in of the main capture view automatically
+                    Crossfade(
+                        targetState = showSplash,
+                        animationSpec = tween(durationMillis = 600),
+                        label = "splash_transition"
+                    ) { isSplashScreen ->
+                        if (isSplashScreen) {
+                            SplashScreen(
+                                onTimeout = { showSplash = false }
+                            )
+                        } else {
+                            CaptureScreen()
+                        }
+                    }
                 }
             }
         }
@@ -126,6 +152,10 @@ class ContractViewModel : ViewModel() {
 
     fun setError(message: String) {
         uiState = UiState.Error(message)
+    }
+
+    fun resetToIdle() {
+        uiState = UiState.Idle
     }
 }
 
@@ -207,16 +237,48 @@ fun CaptureScreen(vm: ContractViewModel = viewModel()) {
             }
         }
 
+        // ── Shimmer Placeholders ──
+        if (uiState is UiState.Loading) {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(top = 100.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                userScrollEnabled = false
+            ) {
+                items(4) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                            .height(100.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .shimmerEffect()
+                    )
+                }
+            }
+        }
+
         // ── Frosted-glass scanning overlay ──
         ScanningOverlay(isLoading = uiState is UiState.Loading)
 
         // ── Results overlay ──
+        val haptic = LocalHapticFeedback.current
+        LaunchedEffect(uiState) {
+            if (uiState is UiState.Success) {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+            }
+        }
+
         when (uiState) {
             is UiState.Success -> ResultsOverlay((uiState as UiState.Success).report)
             is UiState.Error -> {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text((uiState as UiState.Error).message, color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Medium)
-                }
+                ErrorState(
+                    message = (uiState as UiState.Error).message,
+                    onRetry = {
+                        // Reset to idle so the user can scan again
+                        vm.resetToIdle()
+                    }
+                )
             }
             else -> {}
         }
