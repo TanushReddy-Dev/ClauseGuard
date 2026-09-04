@@ -40,7 +40,7 @@ class FeatherlessProvider(LLMProvider):
         self._client = AsyncOpenAI(
             base_url="https://api.featherless.ai/v1",
             api_key=api_key,
-            timeout=120.0,  # generous timeout for large completions
+            timeout=15.0,  # fast timeout to trigger fallbacks before Demo Guard
         )
         self._model = model
         self._temperature = temperature
@@ -198,7 +198,7 @@ PROVIDER_REGISTRY: dict[str, LLMProvider] = {
         _make_provider(
             "Qwen/Qwen2.5-72B-Instruct", # Largest model for massive context analysis
             temperature=0.4,
-            max_tokens=32768,
+            max_tokens=8192,
         ),
         _make_provider(
             "Qwen/Qwen2.5-32B-Instruct",

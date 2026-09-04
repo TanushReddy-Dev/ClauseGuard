@@ -6,10 +6,10 @@ import asyncio
 
 import pypdf
 import docx
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, HTTPException, UploadFile, Body
 import openai
 
-from schemas import AnalysisReport
+from schemas import AnalysisReport, ClauseInput
 from pipeline import run_full_pipeline
 from demo_fallback import get_demo_fallback_report
 
@@ -23,38 +23,25 @@ app = FastAPI(title="ClauseGuard API")
 
 
 @app.post("/analyze-contract", response_model=AnalysisReport)
-async def analyze_contract(file: UploadFile = File(...)):
-    """Analyse an uploaded contract document.
+async def analyze_contract(body: ClauseInput):
+    """Analyse a raw contract string (e.g., from OCR).
 
-    Accepts any text-based file (PDF text layer, .txt, .docx extraction).
-    The content is decoded as UTF-8 and fed through the full six-stage
-    analysis pipeline (3 deterministic + 3 LLM-backed agents).
+    Accepts a JSON payload with the raw text.
+    The text is fed through the full six-stage analysis pipeline.
     """
-    raw_bytes = await file.read()
+    print(f"\n>>> [RECEIVED API REQUEST] Text length: {len(body.text)} characters")
+    print(f">>> [PREVIEW]: {body.text[:100]!r}\n")
 
-    if not raw_bytes:
-        raise HTTPException(status_code=400, detail="Uploaded file is empty.")
-
-    # Decode raw bytes — handle common encodings gracefully
-    try:
-        raw_text = raw_bytes.decode("utf-8")
-    except UnicodeDecodeError:
-        try:
-            raw_text = raw_bytes.decode("latin-1")
-        except UnicodeDecodeError:
-            raise HTTPException(
-                status_code=400,
-                detail="Unable to decode the uploaded file. Please upload a UTF-8 or Latin-1 text file.",
-            )
+    raw_text = body.text
 
     if not raw_text.strip():
-        raise HTTPException(status_code=400, detail="Uploaded file contains no readable text.")
+        raise HTTPException(status_code=400, detail="Provided text is empty.")
 
     try:
         # 30-second guardrail for demo mode
         report = await asyncio.wait_for(run_full_pipeline(raw_text), timeout=30.0)
     except (asyncio.TimeoutError, openai.APITimeoutError, openai.RateLimitError, openai.APIStatusError, openai.APIConnectionError, Exception) as exc:
-        logger.warning(f"[DEMO GUARD] Pipeline failed or timed out for {file.filename} ({type(exc).__name__}). Serving fallback payload.")
+        logger.warning(f"[DEMO GUARD] Pipeline failed or timed out for text input ({type(exc).__name__}). Serving fallback payload.")
         return get_demo_fallback_report()
 
     return report
