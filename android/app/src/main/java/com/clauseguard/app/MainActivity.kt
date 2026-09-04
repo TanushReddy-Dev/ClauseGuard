@@ -86,31 +86,65 @@ import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import com.clauseguard.app.ui.components.ClauseCard
+import androidx.compose.material.icons.rounded.Close
 import com.clauseguard.app.ui.components.ErrorState
 import com.clauseguard.app.ui.components.SplashScreen
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import com.clauseguard.app.data.AppDatabase
+import com.clauseguard.app.data.ContractEntity
+import com.clauseguard.app.ui.screens.HomeScreen
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        val dao = AppDatabase.getDatabase(applicationContext).contractDao()
+        val viewModel = ContractViewModel(dao)
+
         setContent {
             MaterialTheme(colorScheme = darkColorScheme()) {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     var showSplash by remember { mutableStateOf(true) }
 
-                    // Crossfade handles the smooth fade-out of the splash screen
-                    // and fade-in of the main capture view automatically
                     Crossfade(
                         targetState = showSplash,
                         animationSpec = tween(durationMillis = 600),
                         label = "splash_transition"
                     ) { isSplashScreen ->
                         if (isSplashScreen) {
-                            SplashScreen(
-                                onTimeout = { showSplash = false }
-                            )
+                            SplashScreen(onTimeout = { showSplash = false })
                         } else {
-                            CaptureScreen()
+                            val navController = rememberNavController()
+                            NavHost(navController = navController, startDestination = "home") {
+                                composable("home") {
+                                    HomeScreen(
+                                        onNavigateToScan = {
+                                            viewModel.resetToIdle()
+                                            navController.navigate("capture")
+                                        },
+                                        onNavigateToResult = { summaryJson ->
+                                            try {
+                                                val report = Json.decodeFromString<AnalysisReport>(summaryJson)
+                                                viewModel.setCachedReport(report)
+                                                navController.navigate("capture")
+                                            } catch (e: Exception) {
+                                                e.printStackTrace()
+                                            }
+                                        }
+                                    )
+                                }
+                                composable("capture") {
+                                    CaptureScreen(
+                                        vm = viewModel,
+                                        onBack = { navController.popBackStack() }
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -130,7 +164,7 @@ sealed class UiState {
 
 // ── ViewModel: owns the network call, exposes state ──
 
-class ContractViewModel : ViewModel() {
+class ContractViewModel(private val dao: com.clauseguard.app.data.ContractDao? = null) : ViewModel() {
     var uiState by mutableStateOf<UiState>(UiState.Idle)
         private set
 
@@ -140,11 +174,26 @@ class ContractViewModel : ViewModel() {
         viewModelScope.launch {
             uiState = try {
                 val report = NetworkClient.analyzeContract(text = extractedText)
+
+                // Persist the result to Room DB
+                dao?.insertContract(
+                    ContractEntity(
+                        title = report.summary.take(30).trim() + "...",
+                        riskScore = (report.overall_risk_score * 10).toInt().coerceIn(0, 100),
+                        rawText = extractedText,
+                        summaryJson = Json.encodeToString(report)
+                    )
+                )
+
                 UiState.Success(report)
             } catch (e: Exception) {
                 UiState.Error(e.message ?: "Analysis failed")
             }
         }
+    }
+
+    fun setCachedReport(report: AnalysisReport) {
+        uiState = UiState.Success(report)
     }
 
     fun setError(message: String) {
@@ -157,7 +206,7 @@ class ContractViewModel : ViewModel() {
 }
 
 @Composable
-fun CaptureScreen(vm: ContractViewModel = viewModel()) {
+fun CaptureScreen(vm: ContractViewModel = viewModel(), onBack: () -> Unit = {}) {
     val uiState = vm.uiState
 
     Box(Modifier.fillMaxSize()) {
@@ -222,7 +271,25 @@ fun CaptureScreen(vm: ContractViewModel = viewModel()) {
         }
 
         when (uiState) {
-            is UiState.Success -> ResultsOverlay((uiState as UiState.Success).report)
+            is UiState.Success -> {
+                Box(Modifier.fillMaxSize()) {
+                    ResultsOverlay((uiState as UiState.Success).report)
+                    // Close button overlay to return to Home Screen
+                    androidx.compose.material3.IconButton(
+                        onClick = { onBack() },
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(16.dp)
+                            .background(Color.Black.copy(alpha = 0.5f), androidx.compose.foundation.shape.CircleShape)
+                    ) {
+                        androidx.compose.material3.Icon(
+                            androidx.compose.material.icons.Icons.Rounded.Close,
+                            contentDescription = "Close",
+                            tint = Color.White
+                        )
+                    }
+                }
+            }
             is UiState.Error -> {
                 ErrorState(
                     message = (uiState as UiState.Error).message,
