@@ -11,9 +11,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.Image
-import androidx.compose.ui.res.painterResource
-import com.clauseguard.app.R
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -70,10 +70,11 @@ fun SplashScreen(onTimeout: () -> Unit) {
                 .scale(scale)
                 .alpha(alpha)
         ) {
-            Image(
-                painter = painterResource(id = R.mipmap.ic_launcher),
+            Icon(
+                imageVector = Icons.Rounded.Lock,
                 contentDescription = "ClauseGuard Logo",
-                modifier = Modifier.size(120.dp)
+                tint = Color.White,
+                modifier = Modifier.size(100.dp)
             )
             Spacer(modifier = Modifier.height(24.dp))
             Text(
