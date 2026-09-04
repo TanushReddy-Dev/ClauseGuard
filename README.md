@@ -1,126 +1,111 @@
-# ClauseGuard ⚖️🛡️
-
-*Empowering workers and consumers by exposing predatory contract clauses in seconds.*
-
----
-
-## 🛑 The Problem & 💡 The Solution
-
-**The Problem:** Legal contracts are intentionally dense, opaque, and heavily skewed in favor of the drafter. For gig workers, freelancers, and everyday consumers, hiring a lawyer to review standard agreements is cost-prohibitive. Consequently, people routinely sign away their rights—falling victim to broad non-competes, aggressive IP assignments, and hidden arbitration mandates.
-
-**The Solution:** ClauseGuard puts a legal expert in your pocket. Using edge-native OCR and an advanced 6-stage LLM pipeline, ClauseGuard instantly scans physical documents, isolates high-risk clauses, calculates a deterministic risk score, and arms you with a tailored negotiation strategy—all before you pick up a pen.
+# ClauseGuard
+> Exposing predatory contract clauses in seconds through edge-native OCR and hybrid AI deterministic scoring.
 
 ---
 
-## 🏗️ System Architecture
+## The Problem & Solution
 
-ClauseGuard uses a hybrid architecture combining secure on-device processing with a powerful, deterministic AI backend.
+**The Problem:** Everyday consumers and gig workers sign away their rights because hiring a lawyer to review dense, opaque legal contracts is cost-prohibitive. As a result, people routinely fall victim to broad non-competes, aggressive IP assignments, and hidden binding arbitration traps.
+
+**The Solution:** ClauseGuard serves as a legal expert in your pocket. By combining on-device OCR with a 6-stage hybrid LLM pipeline, the system instantly isolates high-risk clauses, calculates a deterministic risk score, and provides actionable negotiation scripts—all before you sign.
+
+---
+
+## System Architecture
 
 ```text
-  [Physical Contract] 
-          │
-          ▼
-┌───────────────────┐      1. Local edge OCR preserves privacy.
-│  Android Client   │         Images never leave the device.
+[ Physical Contract ]
+         │
+         ▼
+┌───────────────────┐    1. Local edge OCR preserves privacy.
+│  Android Client   │       Images never leave the device.
 │    (CameraX)      │
 └─────────┬─────────┘
           │
           ▼
-┌───────────────────┐      2. Raw text is securely transmitted
-│  Google ML Kit    │         over HTTPS to our infrastructure.
-│ (On-Device OCR)   │
+┌───────────────────┐    2. Extracted text transmitted securely.
+│  Google ML Kit    │       Only raw text strings are sent.
 └─────────┬─────────┘
           │
-          ▼
-    [Raw Text String]
-          │
- ══(Cloudflare Tunnel)══   3. Secure tunnel bypasses local network blocks.
+  (Cloudflare Tunnel)    3. Zero-trust HTTPS bypasses restrictive subnets.
           │
           ▼
-┌───────────────────┐      4. 6-stage agentic pipeline extracts and
-│ FastAPI Backend   │         classifies legal language.
+┌───────────────────┐    4. High-performance async endpoint handles
+│  FastAPI Backend  │       incoming payload.
 └─────────┬─────────┘
           │
      ┌────┴────┐
      ▼         ▼
-┌────────┐ ┌────────┐      5. Hybrid Engine:
-│  Qwen  │ │ Pandas │         The LLM provides natural language extraction
-│  LLM   │ │ Engine │         and negotiation scripts. Pandas enforces strict,
-└────────┘ └────────┘         deterministic risk scoring rules for consistency.
+┌────────┐ ┌────────┐    5. Hybrid Engine: LLM parses and classifies;
+│  Qwen  │ │ Pandas │       Pandas enforces strict risk scoring rules
+│  LLM   │ │ Engine │       to eliminate math hallucinations.
+└────────┘ └────────┘
      │         │
      └────┬────┘
           ▼
- [Analysis Report JSON]    6. Data flows back to the client.
-          │
+[ JSON Risk Report  ]    6. Rendered natively with physics-based
+          │                 3D flip cards and frosted glass UI.
           ▼
-┌───────────────────┐      7. Premium Native UX:
-│ Jetpack Compose   │         Physics-based 3D card flips, frosted glass overlays,
-│  UI / Animations  │         and animated risk dials render the results.
+┌───────────────────┐
+│  Jetpack Compose  │
 └───────────────────┘
 ```
 
 ---
 
-## 🛠️ Tech Stack Breakdown
+## Technology Stack
 
-### Frontend (Native Android)
-*   **Kotlin & Jetpack Compose:** Fully declarative, state-driven UI.
-*   **CameraX:** Full-bleed, lifecycle-aware hardware camera integration.
-*   **Google ML Kit:** On-device Text Recognition (OCR) without network latency.
-*   **Animations:** Apple-inspired, Emil Kowalski-style physics-based spring animations (`animateFloatAsState`, `Spring.DampingRatioMediumBouncy`) and 3D graphics layer transforms.
-*   **Retrofit & kotlinx.serialization:** Robust, type-safe network layer.
-
-### Backend (API & Data)
-*   **Python 3 & FastAPI:** High-performance, asynchronous REST API.
-*   **Pandas:** Deterministic rule engine ensuring risk scores are calculated via strict heuristics rather than unpredictable LLM hallucinations.
-*   **Cloudflare Tunnels (`cloudflared`):** Exposes the local backend to the public internet securely, bypassing hackathon/local Wi-Fi subnet restrictions.
-
-### AI & Inference
-*   **Featherless AI:** Serverless, zero-cost AI model routing infrastructure.
-*   **Qwen LLM:** Highly capable open-source large language model responsible for the 6-stage agentic workflow (extracting clauses, categorizing risk types, and generating the negotiation script).
+| Architectural Layer | Technologies Used |
+| :--- | :--- |
+| **Frontend** | Android, Kotlin, Jetpack Compose, CameraX, Material 3 |
+| **Backend** | Python 3, FastAPI, Retrofit, Cloudflared (Tunnels) |
+| **AI/ML Infrastructure** | Google ML Kit (Edge OCR), Featherless AI, Qwen LLM |
+| **Data & Logic** | Pandas (Deterministic Rule Engine) |
 
 ---
 
-## 🚀 Setup & Installation
+## Frictionless Installation
 
-### 1. Backend Setup
-Navigate to the backend directory, set up your Python environment, and start the FastAPI server:
-
+### 1. Backend & AI Pipeline
 ```bash
-cd backend
+# Clone the repository and setup Python environment
+cd ClauseGuard/backend
 python -m venv venv
-source venv/bin/activate  # Or `venv\Scripts\activate` on Windows
+source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 
-# Export your Featherless AI key
+# Configure AI Routing (Featherless AI)
 export FEATHERLESS_API_KEY="your_api_key_here"
 
-# Start the FastAPI server
+# Spin up the FastAPI server
 uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
-### 2. Cloudflare Tunnel
-In a new terminal, expose your local port 8000 using Cloudflare:
+### 2. Network Tunneling
 ```bash
+# Expose the local backend securely via Cloudflare
 cloudflared tunnel --url http://localhost:8000
+# Note the generated HTTPS URL (e.g., https://your-tunnel.trycloudflare.com)
 ```
-*Note the generated `.trycloudflare.com` HTTPS URL.*
 
-### 3. Android Setup
-1. Open the `/android` folder in **Android Studio**.
-2. Open `app/build.gradle.kts`.
-3. Locate the `BASE_URL` build config field and replace it with your active Cloudflare tunnel URL:
-   ```kotlin
-   buildConfigField("String", "BASE_URL", "\"https://your-tunnel-url.trycloudflare.com/\"")
-   ```
-4. Sync Gradle.
-5. Build and run on a **physical Android device** (CameraX and ML Kit require real hardware to function correctly).
+### 3. Android Client
+```bash
+# Navigate to the Android project root
+cd ../android
+
+# Update the API endpoint in your build configuration
+# Edit android/app/build.gradle.kts:
+# buildConfigField("String", "BASE_URL", "\"https://your-tunnel.trycloudflare.com/\"")
+
+# Clean and build the APK
+./gradlew clean assembleDebug
+```
+*Note: Deploy to a physical Android device to test CameraX and ML Kit functionality.*
 
 ---
 
-## 🌟 Key Differentiators
+## Core Differentiators
 
-*   **Privacy First (Edge OCR):** We respect user privacy. Contract photos are processed entirely on-device using ML Kit. Only the raw extracted text strings are transmitted to the backend, meaning no sensitive images are ever stored on a server.
-*   **Deterministic + Generative Hybrid:** LLMs are great at parsing text but terrible at math and consistency. ClauseGuard uses the LLM purely for text extraction and classification, routing the output into a **Pandas-based deterministic engine** that calculates the final risk score. You get the intelligence of generative AI with the reliability of standard software.
-*   **Premium, Tactile UI:** The app rejects cross-platform UI jank. Built entirely in native Jetpack Compose, the interface utilizes frosted glass blurring, spring-physics 3D flip cards, and smoothly animated Canvas dials to make reviewing dense legal text engaging and digestible.
-*   **Zero-Cost OSS Routing:** By utilizing the open-source Qwen model served via Featherless AI, the operational pipeline remains incredibly cost-effective compared to proprietary, locked-in alternatives.
+* **Privacy-First Edge Processing:** Contract photos are processed entirely on-device using ML Kit OCR. Only raw extracted text strings transmit to the cloud, guaranteeing sensitive legal images are never stored or intercepted.
+* **Hybrid Deterministic Scoring:** Generative AI is used strictly for natural language extraction and classification, feeding directly into a **Pandas-based deterministic rule engine**. This eliminates LLM hallucination in risk scoring, ensuring enterprise-grade consistency.
+* **Zero-Cost OSS Routing:** Utilizing the open-source Qwen model served via Featherless AI allows the 6-stage agentic workflow to operate at zero API token cost, bypassing the massive financial overhead of proprietary cloud AI models.
