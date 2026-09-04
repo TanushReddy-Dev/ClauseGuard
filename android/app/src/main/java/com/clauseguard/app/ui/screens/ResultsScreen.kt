@@ -26,7 +26,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -39,6 +38,7 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.clauseguard.app.models.AnalysisReport
@@ -64,11 +64,12 @@ fun ResultsScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF050507)) // Solid black background instead of gradient
+            .background(Color(0xFF050507)) // Pure black iOS dark mode
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(top = 16.dp, bottom = 120.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp), // Emil: generous breathing room between cards
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             item {
@@ -103,61 +104,33 @@ fun ResultsScreen(
                 }
             }
 
+            // Hero Section: Just the dial and a single high-impact sentence
             item {
+                Spacer(modifier = Modifier.height(24.dp))
                 RiskDial(
-                    score = (report.overall_risk_score * 10).toInt().coerceIn(0, 100),
-                    modifier = Modifier.padding(vertical = 16.dp)
+                    score = (report.overall_risk_score * 10).toInt().coerceIn(0, 100)
                 )
-            }
-
-            item {
+                Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = "Flagged Clauses",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Color.White,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(start = 24.dp, top = 24.dp, bottom = 16.dp)
+                    text = "${flaggedClauses.size} high-risk clauses detected.",
+                    fontSize = 15.sp,
+                    color = Color.White.copy(alpha = 0.6f),
+                    textAlign = TextAlign.Center
                 )
+                Spacer(modifier = Modifier.height(24.dp))
             }
 
             if (flaggedClauses.isEmpty()) {
                 item { SafeStateCard() }
             } else {
                 items(flaggedClauses) { clause ->
-                    ClauseCard(clause = clause, globalNegotiationScript = report.negotiation_script)
-                }
-            }
-        }
-
-        // Global Negotiation Strategy Button
-        if (report.negotiation_script.isNotBlank()) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .padding(16.dp)
-                    .padding(bottom = 16.dp)
-            ) {
-                Button(
-                    onClick = {
-                        haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                        showStrategySheet = true
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp)
-                        ,
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF0A84FF),
-                        contentColor = Color.White
+                    ExpandableClauseCard(
+                        clause = clause,
+                        onViewStrategy = {
+                            haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            showStrategySheet = true
+                        }
                     )
-                ) {
-                    Icon(imageVector = Icons.Rounded.Info, contentDescription = null, modifier = Modifier.size(20.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("View Master Strategy", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                 }
             }
         }
@@ -256,7 +229,7 @@ fun ResultsScreen(
 }
 
 @Composable
-private fun ClauseCard(clause: ClauseRiskScore, globalNegotiationScript: String) {
+private fun ExpandableClauseCard(clause: ClauseRiskScore, onViewStrategy: () -> Unit) {
     val haptics = LocalHapticFeedback.current
     var expanded by remember { mutableStateOf(false) }
 
@@ -269,8 +242,8 @@ private fun ClauseCard(clause: ClauseRiskScore, globalNegotiationScript: String)
     val arrowRotation by animateFloatAsState(
         targetValue = if (expanded) 180f else 0f,
         animationSpec = spring(
-            dampingRatio = 0.8f, // Emil: Apple style low bounce
-            stiffness = 400f
+            dampingRatio = Spring.DampingRatioNoBouncy,
+            stiffness = Spring.StiffnessLow
         ),
         label = "arrow_rotation"
     )
@@ -278,7 +251,7 @@ private fun ClauseCard(clause: ClauseRiskScore, globalNegotiationScript: String)
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .padding(horizontal = 16.dp)
             .background(
                 color = Color.White.copy(alpha = 0.06f),
                 shape = RoundedCornerShape(24.dp)
@@ -289,22 +262,23 @@ private fun ClauseCard(clause: ClauseRiskScore, globalNegotiationScript: String)
                 shape = RoundedCornerShape(24.dp)
             )
             .clip(RoundedCornerShape(24.dp))
-            .animateContentSize(
-                animationSpec = spring(
-                    dampingRatio = 0.8f, // Emil: Apple style low bounce
-                    stiffness = 400f
-                )
-            )
             .clickable {
                 haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                 expanded = !expanded
             }
+            .animateContentSize(
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioNoBouncy,
+                    stiffness = Spring.StiffnessLow
+                )
+            )
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(20.dp)
         ) {
+            // Category & Risk Badge
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -341,81 +315,75 @@ private fun ClauseCard(clause: ClauseRiskScore, globalNegotiationScript: String)
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            // Progressive Disclosure: Ellipsized when collapsed
             Text(
                 text = "\"${clause.clause_text}\"",
                 fontSize = 14.sp,
                 color = Color.White.copy(alpha = 0.85f),
                 fontStyle = FontStyle.Italic,
                 lineHeight = 22.sp,
+                maxLines = if (expanded) Int.MAX_VALUE else 2,
+                overflow = TextOverflow.Ellipsis,
                 modifier = Modifier
+                    .fillMaxWidth()
                     .background(Color.Black.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
                     .padding(14.dp)
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text(
-                text = "Analysis",
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
-                color = riskColor.copy(alpha = 0.9f)
-            )
-            Spacer(modifier = Modifier.height(6.dp))
-            Text(
-                text = clause.explanation,
-                fontSize = 15.sp,
-                color = Color.White,
-                lineHeight = 22.sp
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = if (expanded) "Hide Strategy" else "View Strategy",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Color(0xFFA191FF)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Icon(
-                    imageVector = Icons.Rounded.KeyboardArrowDown,
-                    contentDescription = "Toggle Strategy",
-                    tint = Color(0xFFA191FF),
-                    modifier = Modifier
-                        .size(20.dp)
-                        .rotate(arrowRotation)
-                )
-            }
-
             if (expanded) {
                 Spacer(modifier = Modifier.height(16.dp))
-                Box(
+
+                Text(
+                    text = "Analysis",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = riskColor.copy(alpha = 0.9f)
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = clause.explanation,
+                    fontSize = 15.sp,
+                    color = Color.White,
+                    lineHeight = 22.sp
+                )
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                Button(
+                    onClick = onViewStrategy,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(Color(0xFFA191FF).copy(alpha = 0.1f), RoundedCornerShape(16.dp)) // Solid color
-                        .border(1.dp, Color(0xFFA191FF).copy(alpha = 0.2f), RoundedCornerShape(16.dp))
-                        .padding(16.dp)
+                        .height(48.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF0A84FF).copy(alpha = 0.15f),
+                        contentColor = Color(0xFF0A84FF)
+                    )
                 ) {
-                    Column {
-                        Text(
-                            text = "Negotiation Strategy",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFFA191FF)
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = globalNegotiationScript,
-                            fontSize = 14.sp,
-                            color = Color.White.copy(alpha = 0.9f),
-                            lineHeight = 22.sp
-                        )
-                    }
+                    Text("View Negotiation Strategy", fontWeight = FontWeight.Bold)
+                }
+            } else {
+                Spacer(modifier = Modifier.height(16.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Tap to expand",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color.White.copy(alpha = 0.4f)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Icon(
+                        imageVector = Icons.Rounded.KeyboardArrowDown,
+                        contentDescription = "Expand",
+                        tint = Color.White.copy(alpha = 0.4f),
+                        modifier = Modifier
+                            .size(16.dp)
+                            .rotate(arrowRotation)
+                    )
                 }
             }
         }

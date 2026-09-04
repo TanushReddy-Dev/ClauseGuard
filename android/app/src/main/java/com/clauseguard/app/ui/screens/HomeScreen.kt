@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -360,9 +361,10 @@ private fun VaultCard(contract: ContractEntity, onClick: () -> Unit) {
             }
             Box(
                 modifier = Modifier
-                    .size(52.dp)
+                    .defaultMinSize(minWidth = 52.dp, minHeight = 52.dp)
                     .background(riskColor.copy(alpha = 0.15f), RoundedCornerShape(50))
-                    .border(1.dp, riskColor.copy(alpha = 0.3f), RoundedCornerShape(50)),
+                    .border(1.dp, riskColor.copy(alpha = 0.3f), RoundedCornerShape(50))
+                    .padding(horizontal = 12.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
