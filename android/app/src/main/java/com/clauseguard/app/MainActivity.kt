@@ -99,6 +99,14 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.coroutines.launch
 
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.asRequestBody
+import java.io.File
+
+import java.io.FileOutputStream
+import android.net.Uri
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -127,10 +135,15 @@ class MainActivity : ComponentActivity() {
                                             viewModel.resetToIdle()
                                             navController.navigate("capture")
                                         },
-                                        onNavigateToResult = { summaryJson ->
+                                        onUploadDocument = { uri ->
+                                            viewModel.resetToIdle()
+                                            viewModel.uploadDocument(uri, applicationContext)
+                                            navController.navigate("capture")
+                                        },
+                                        onNavigateToResult = { summaryJson, rawText ->
                                             try {
                                                 val report = Json.decodeFromString<AnalysisReport>(summaryJson)
-                                                viewModel.setCachedReport(report)
+                                                viewModel.setCachedReport(report, rawText)
                                                 navController.navigate("capture")
                                             } catch (e: Exception) {
                                                 e.printStackTrace()
@@ -158,7 +171,7 @@ class MainActivity : ComponentActivity() {
 sealed class UiState {
     object Idle : UiState()
     object Loading : UiState()
-    data class Success(val report: AnalysisReport) : UiState()
+    data class Success(val report: AnalysisReport, val rawText: String) : UiState()
     data class Error(val message: String) : UiState()
 }
 
@@ -185,15 +198,56 @@ class ContractViewModel(private val dao: com.clauseguard.app.data.ContractDao? =
                     )
                 )
 
-                UiState.Success(report)
+                UiState.Success(report, extractedText)
             } catch (e: Exception) {
                 UiState.Error(e.message ?: "Analysis failed")
             }
         }
     }
 
-    fun setCachedReport(report: AnalysisReport) {
-        uiState = UiState.Success(report)
+    fun uploadDocument(uri: Uri, context: android.content.Context) {
+        if (uiState is UiState.Loading) return
+        uiState = UiState.Loading
+        viewModelScope.launch {
+            try {
+                // Copy the selected document to a temporary file
+                val contentResolver = context.contentResolver
+                val mimeType = contentResolver.getType(uri) ?: "application/octet-stream"
+                val extension = if (mimeType.contains("pdf")) ".pdf" else ".docx"
+                val tempFile = File.createTempFile("upload_", extension, context.cacheDir)
+
+                contentResolver.openInputStream(uri)?.use { inputStream ->
+                    FileOutputStream(tempFile).use { outputStream ->
+                        inputStream.copyTo(outputStream)
+                    }
+                }
+
+                // Create MultipartBody
+                val requestBody = tempFile.asRequestBody(mimeType.toMediaTypeOrNull())
+                val multipart = MultipartBody.Part.createFormData("file", tempFile.name, requestBody)
+
+                // Upload
+                val report = NetworkClient.api.analyzeFile(multipart)
+
+                // Persist the result to Room DB
+                dao?.insertContract(
+                    ContractEntity(
+                        title = report.summary.take(30).trim() + "...",
+                        riskScore = (report.overall_risk_score * 10).toInt().coerceIn(0, 100),
+                        rawText = "Document File Upload",
+                        summaryJson = Json.encodeToString(report)
+                    )
+                )
+
+                uiState = UiState.Success(report, "Document File Upload")
+            } catch (e: Exception) {
+                uiState = UiState.Error(e.message ?: "Upload failed")
+            }
+        }
+    }
+
+    fun setCachedReport(report: AnalysisReport, rawText: String) {
+        uiState = UiState.Success(report, rawText)
     }
 
     fun setError(message: String) {
@@ -272,23 +326,11 @@ fun CaptureScreen(vm: ContractViewModel = viewModel(), onBack: () -> Unit = {}) 
 
         when (uiState) {
             is UiState.Success -> {
-                Box(Modifier.fillMaxSize()) {
-                    ResultsOverlay((uiState as UiState.Success).report)
-                    // Close button overlay to return to Home Screen
-                    androidx.compose.material3.IconButton(
-                        onClick = { onBack() },
-                        modifier = Modifier
-                            .align(Alignment.TopStart)
-                            .padding(16.dp)
-                            .background(Color.Black.copy(alpha = 0.5f), androidx.compose.foundation.shape.CircleShape)
-                    ) {
-                        androidx.compose.material3.Icon(
-                            androidx.compose.material.icons.Icons.Rounded.Close,
-                            contentDescription = "Close",
-                            tint = Color.White
-                        )
-                    }
-                }
+                val successState = uiState as UiState.Success
+                com.clauseguard.app.ui.screens.ResultsScreen(
+                    report = successState.report,
+                    onBack = onBack
+                )
             }
             is UiState.Error -> {
                 ErrorState(
@@ -328,300 +370,4 @@ private fun ScanningOverlay(isLoading: Boolean) {
             Text("Analyzing contract…", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Medium)
         }
     }
-}
-
-// ── Results: risk dial + clause cards ──
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun ResultsOverlay(report: AnalysisReport) {
-    val flaggedClauses = remember(report) {
-        report.clauses.filter {
-            val cat = it.classification.category.lowercase()
-            cat != "other:unknown" && cat != "unknown"
-        }
-    }
-
-    var showNegotiationSheet by remember { mutableStateOf(false) }
-
-    Box(Modifier.fillMaxSize()) {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 100.dp, top = 16.dp), // extra padding for the floating button
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            item {
-                Text(
-                    "Contract Risk Analysis",
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(16.dp),
-                )
-            }
-            item {
-                RiskDial(
-                    score = (report.overall_risk_score * 10).toInt().coerceIn(0, 100),
-                    modifier = Modifier.padding(vertical = 16.dp),
-                )
-            }
-            item {
-                Text(
-                    report.summary,
-                    fontSize = 14.sp,
-                    color = Color.Gray,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                )
-            }
-            item {
-                Text(
-                    "Flagged Clauses",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.padding(start = 16.dp, top = 24.dp, bottom = 8.dp),
-                )
-            }
-            if (flaggedClauses.isEmpty()) {
-                item { SafeStateCard() }
-            } else {
-                itemsIndexed(flaggedClauses) { index, clause ->
-                    ClauseCard(clause = clause, index = index)
-                }
-            }
-        }
-
-        // Action button at the bottom
-        if (report.negotiation_script.isNotBlank()) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .padding(16.dp)
-            ) {
-                Button(
-                    onClick = { showNegotiationSheet = true },
-                    modifier = Modifier.fillMaxWidth().height(56.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                ) {
-                    Text("View Negotiation Strategy", fontWeight = FontWeight.Bold)
-                }
-            }
-        }
-    }
-
-    if (showNegotiationSheet) {
-        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-        ModalBottomSheet(
-            onDismissRequest = { showNegotiationSheet = false },
-            sheetState = sheetState,
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 16.dp)
-                    .padding(bottom = 32.dp)
-            ) {
-                Text(
-                    "Negotiation Strategy",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(Modifier.height(16.dp))
-                Text(
-                    report.negotiation_script,
-                    fontSize = 16.sp,
-                    lineHeight = 24.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f)
-                )
-            }
-        }
-    }
-}
-
-// ── "All clear" empty state — frosted card with green checkmark ──
-
-@Composable
-private fun SafeStateCard() {
-    var visible by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { visible = true }
-
-    // Same MediumBouncy spring as clause cards for visual consistency
-    val scale by animateFloatAsState(
-        targetValue = if (visible) 1f else 0f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium,
-        ),
-        label = "safe-entrance",
-    )
-
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp)
-            .graphicsLayer { scaleX = scale; scaleY = scale; alpha = scale },
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF1B3726)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Text("✓", fontSize = 48.sp, color = Color(0xFF4CAF50))
-            Spacer(Modifier.height(12.dp))
-            Text(
-                "No high-risk clauses detected",
-                fontWeight = FontWeight.Bold,
-                fontSize = 18.sp,
-                color = Color.White,
-            )
-            Spacer(Modifier.height(8.dp))
-            Text(
-                "This contract looks standard. No actionable risks were identified by the analysis.",
-                fontSize = 14.sp,
-                color = Color.White.copy(alpha = 0.7f),
-                textAlign = TextAlign.Center,
-            )
-        }
-    }
-}
-
-// ── Clause card: spring entrance + tap-to-flip 3D ──
-
-@Composable
-private fun ClauseCard(clause: ClauseRiskScore, index: Int) {
-    var visible by remember { mutableStateOf(false) }
-    var flipped by remember { mutableStateOf(false) }
-
-    LaunchedEffect(Unit) { visible = true }
-
-    val scale by animateFloatAsState(
-        targetValue = if (visible) 1f else 0f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium,
-        ),
-        label = "entrance",
-    )
-
-    val rotation by animateFloatAsState(
-        targetValue = if (flipped) 180f else 0f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioLowBouncy,
-            stiffness = Spring.StiffnessMediumLow,
-        ),
-        label = "flip",
-    )
-
-    val isFrontVisible = rotation <= 90f
-    val riskPercent = (clause.risk_score * 10).toInt().coerceIn(0, 100)
-
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp)
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-                alpha = scale
-                rotationY = rotation
-                cameraDistance = 12f * density
-            }
-            .clickable { flipped = !flipped },
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp),
-            contentAlignment = Alignment.CenterStart,
-        ) {
-            if (isFrontVisible) {
-                Column {
-                    Text(clause.classification.category, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                    Spacer(Modifier.height(8.dp))
-                    Text(clause.clause_text, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Spacer(Modifier.height(6.dp))
-                    Text(
-                        clause.risk_level.uppercase(),
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = riskColor(riskPercent),
-                    )
-                }
-            } else {
-                Column(Modifier.graphicsLayer { rotationY = 180f }) {
-                    Text(
-                        "Risk Score: $riskPercent/100",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp,
-                        color = riskColor(riskPercent),
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    Text(clause.explanation, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
-        }
-    }
-}
-
-// ── Risk dial: Canvas arc animated 0→score over 1200ms ──
-
-@Composable
-private fun RiskDial(score: Int, modifier: Modifier = Modifier) {
-    var triggered by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { triggered = true }
-
-    val sweepTarget = (score / 100f) * 240f
-
-    val animatedSweep by animateFloatAsState(
-        targetValue = if (triggered) sweepTarget else 0f,
-        animationSpec = tween(durationMillis = 1200),
-        label = "dial",
-    )
-
-    val color = riskColor(score)
-
-    Box(modifier = modifier.size(200.dp), contentAlignment = Alignment.Center) {
-        Canvas(Modifier.size(180.dp)) {
-            val stroke = Stroke(width = 16.dp.toPx(), cap = StrokeCap.Round)
-            val arcSize = Size(size.width, size.height)
-
-            drawArc(
-                color = Color.LightGray.copy(alpha = 0.3f),
-                startAngle = 150f,
-                sweepAngle = 240f,
-                useCenter = false,
-                topLeft = Offset.Zero,
-                size = arcSize,
-                style = stroke,
-            )
-            drawArc(
-                color = color,
-                startAngle = 150f,
-                sweepAngle = animatedSweep,
-                useCenter = false,
-                topLeft = Offset.Zero,
-                size = arcSize,
-                style = stroke,
-            )
-        }
-        Text("$score", fontSize = 40.sp, fontWeight = FontWeight.Bold, color = color)
-    }
-}
-
-private fun riskColor(score: Int): Color = when {
-    score >= 70 -> Color.Red
-    score >= 40 -> Color(0xFFFF9800)
-    else -> Color(0xFF4CAF50)
 }

@@ -21,6 +21,12 @@ interface ClauseGuardApi {
     suspend fun analyzeContract(
         @retrofit2.http.Body input: ClauseInput,
     ): AnalysisReport
+
+    @retrofit2.http.Multipart
+    @POST("analyze-file")
+    suspend fun analyzeFile(
+        @retrofit2.http.Part file: okhttp3.MultipartBody.Part,
+    ): AnalysisReport
 }
 
 object NetworkClient {
@@ -33,7 +39,7 @@ object NetworkClient {
         .build()
 
     private val retrofit: Retrofit = Retrofit.Builder()
-        .baseUrl("https://ice-copyrighted-clinical-univ.trycloudflare.com/")
+        .baseUrl("https://clauseguard-api-29de.onrender.com/")
         .client(okHttp)
         .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
         .build()
