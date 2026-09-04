@@ -10,8 +10,7 @@
         android:allowBackup="false"
         android:label="ClauseGuard"
         android:supportsRtl="true"
-        android:theme="@style/Theme.ClauseGuard"
-        android:usesCleartextTraffic="true">
+        android:theme="@style/Theme.ClauseGuard">
 
         <activity
             android:name=".MainActivity"
