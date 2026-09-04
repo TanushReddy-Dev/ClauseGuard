@@ -1,4 +1,5 @@
-package com.clauseguard.app.ui.components
+with open('app/src/main/java/com/clauseguard/app/ui/components/ScanningOverlay.kt', 'w') as f:
+    f.write('''package com.clauseguard.app.ui.components
 
 import android.graphics.RenderEffect
 import android.graphics.Shader
@@ -10,7 +11,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-
+import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -165,3 +166,4 @@ fun ScanningOverlay(isLoading: Boolean) {
         }
     }
 }
+''')
