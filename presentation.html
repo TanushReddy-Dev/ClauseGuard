@@ -2,412 +2,242 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ClauseGuard Pitch Deck</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ClauseGuard - Hackathon Pitch Deck</title>
+
+    <!-- Reveal.js Base Styles -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reset.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reveal.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/theme/night.min.css" id="theme">
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+
+    <!-- Custom Glassmorphism & Animations -->
     <style>
-        :root {
-            --bg-color: #050507;
-            --text-main: #ffffff;
-            --text-muted: #8e8e93;
-            --glass-bg: rgba(255, 255, 255, 0.04);
-            --glass-border: rgba(255, 255, 255, 0.08);
-            --accent-gradient: linear-gradient(135deg, #0A84FF 0%, #5E5CE6 100%);
-            --accent-gradient-2: linear-gradient(135deg, #32D74B 0%, #30D158 100%);
-            --accent-gradient-3: linear-gradient(135deg, #FF9F0A 0%, #FF375F 100%);
+        .reveal {
+            font-family: 'Inter', sans-serif;
+            background: radial-gradient(circle at top right, #111b2e 0%, #050507 100%);
         }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
+        .reveal h1, .reveal h2, .reveal h3 {
+            font-family: 'Inter', sans-serif;
+            font-weight: 800;
+            text-transform: none;
+            letter-spacing: -0.02em;
         }
 
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            overflow: hidden;
-            width: 100vw;
-            height: 100vh;
-        }
-
-        /* Ambient Background Orbs */
-        .ambient-orb {
-            position: fixed;
-            border-radius: 50%;
-            filter: blur(120px);
-            z-index: -1;
-            opacity: 0.4;
-            animation: float 20s ease-in-out infinite alternate;
-        }
-        .orb-1 { top: -10vh; left: -10vw; width: 50vw; height: 50vw; background: #0A84FF; }
-        .orb-2 { bottom: -20vh; right: -10vw; width: 60vw; height: 60vw; background: #5E5CE6; animation-delay: -5s; }
-        .orb-3 { top: 40vh; left: 40vw; width: 30vw; height: 30vw; background: #32D74B; opacity: 0.15; animation-delay: -10s; }
-
-        @keyframes float {
-            0% { transform: translate(0, 0) scale(1); }
-            100% { transform: translate(50px, 50px) scale(1.1); }
-        }
-
-        /* Typography */
-        h1, h2, h3 { letter-spacing: -0.03em; }
-        .gradient-text {
-            background: var(--accent-gradient);
+        .reveal h1 {
+            background: linear-gradient(135deg, #0A84FF 0%, #5E5CE6 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            margin-bottom: 20px;
         }
 
-        /* Slides Container */
-        #deck {
-            position: relative;
-            width: 100%;
-            height: 100%;
+        .reveal h2 {
+            color: #ffffff;
         }
 
-        .slide {
-            position: absolute;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            padding: 8vw;
-            opacity: 0;
-            visibility: hidden;
-            transform: scale(0.95) translateY(20px);
-            transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
-                        transform 0.8s cubic-bezier(0.16, 1, 0.3, 1),
-                        visibility 0.8s;
-            z-index: 1;
-        }
-
-        .slide.active {
-            opacity: 1;
-            visibility: visible;
-            transform: scale(1) translateY(0);
-            z-index: 2;
-        }
-
-        /* Glassmorphism Components */
-        .glass-panel {
-            background: var(--glass-bg);
-            backdrop-filter: blur(40px);
-            -webkit-backdrop-filter: blur(40px);
-            border: 1px solid var(--glass-border);
-            border-radius: 32px;
-            padding: 40px;
-            box-shadow: 0 24px 48px rgba(0,0,0,0.4);
-        }
-
-        .grid-3 {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 32px;
-            width: 100%;
-            max-width: 1200px;
-            margin-top: 40px;
-        }
-
-        /* Specific Slide Styling */
-        .title-slide h1 { font-size: 6rem; font-weight: 700; margin-bottom: 16px; }
-        .title-slide p { font-size: 1.75rem; color: var(--text-muted); font-weight: 300; }
-
-        .section-title { font-size: 3.5rem; margin-bottom: 24px; align-self: flex-start; max-width: 1200px; width: 100%; margin-left: auto; margin-right: auto; }
-
-        /* Architecture Flow */
-        .arch-flow {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            width: 100%;
-            max-width: 1200px;
-            margin-top: 60px;
-        }
-        .arch-node {
-            flex: 1;
-            text-align: center;
-            position: relative;
-        }
-        .arch-node .glass-panel { padding: 30px 20px; display: flex; flex-direction: column; gap: 12px; }
-        .arch-arrow {
-            color: var(--glass-border);
-            font-size: 2rem;
-            margin: 0 20px;
-        }
-
-        /* Demo Phones */
-        .phone-mockup {
-            width: 100%;
-            aspect-ratio: 9/19;
-            border-radius: 32px;
-            border: 8px solid #1c1c1e;
-            background: #000;
-            position: relative;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-            text-align: center;
-        }
-        .phone-mockup::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 50%;
-            transform: translateX(-50%);
-            width: 40%; height: 24px;
-            background: #1c1c1e;
-            border-bottom-left-radius: 12px;
-            border-bottom-right-radius: 12px;
-        }
-        .phone-badge {
-            background: var(--glass-bg);
-            border: 1px solid var(--glass-border);
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 0.85rem;
-            margin-bottom: auto;
-            margin-top: 40px;
-        }
-
-        /* Controls */
-        .controls {
-            position: fixed;
-            bottom: 40px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            gap: 16px;
-            z-index: 100;
-        }
-        .btn {
-            background: var(--glass-bg);
+        /* Glassmorphism Classes */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05);
             backdrop-filter: blur(20px);
-            border: 1px solid var(--glass-border);
-            color: white;
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 40px;
+            box-shadow: 0 24px 48px rgba(0, 0, 0, 0.4);
+            margin: 20px auto;
+        }
+
+        .glass-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-top: 40px;
+        }
+
+        .glass-grid .glass-card {
+            margin: 0;
+            padding: 30px;
+            text-align: left;
+        }
+
+        .glass-grid h3 {
+            font-size: 1.5em;
+            margin-bottom: 15px;
+            color: #0A84FF;
+        }
+
+        .glass-grid p {
+            font-size: 1em;
+            line-height: 1.5;
+            color: #A1A1A6;
+            margin: 0;
+        }
+
+        /* Tech Stack Tags */
+        .tech-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 40px;
+        }
+
+        .tech-tag {
+            background: rgba(10, 132, 255, 0.15);
+            border: 1px solid rgba(10, 132, 255, 0.3);
+            color: #0A84FF;
             padding: 12px 24px;
             border-radius: 100px;
-            font-family: inherit;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: all 0.2s;
+            font-size: 1.2em;
+            font-weight: 600;
         }
-        .btn:hover { background: rgba(255,255,255,0.1); }
-        .btn:active { transform: scale(0.95); }
 
-        .progress-bar {
-            position: fixed;
-            bottom: 0; left: 0; height: 4px;
-            background: var(--accent-gradient);
-            transition: width 0.4s ease;
-            z-index: 100;
+        /* Accent Colors */
+        .text-red { color: #FF375F; }
+        .text-green { color: #32D74B; }
+
+        .subtext {
+            color: #8E8E93;
+            font-size: 1.2em;
+            font-weight: 300;
         }
     </style>
 </head>
 <body>
+    <div class="reveal">
+        <div class="slides">
 
-    <!-- Ambient Background -->
-    <div class="ambient-orb orb-1"></div>
-    <div class="ambient-orb orb-2"></div>
-    <div class="ambient-orb orb-3"></div>
-
-    <div id="deck">
-        <!-- Slide 1: Title -->
-        <section class="slide active title-slide">
-            <h1 class="gradient-text">ClauseGuard</h1>
-            <p>Democratizing Legal Protection via Edge AI and Open-Source LLMs</p>
-        </section>
-
-        <!-- Slide 2: The Problem -->
-        <section class="slide">
-            <h2 class="section-title">The Legal <span style="color: #FF375F">Blindspot</span></h2>
-            <div class="grid-3">
-                <div class="glass-panel">
-                    <h3 style="font-size: 4rem; margin-bottom: 16px;" class="gradient-text">90%</h3>
-                    <p style="font-size: 1.25rem; color: var(--text-muted); line-height: 1.5;">Of individuals sign contracts and terms of service without reading or understanding them.</p>
+            <!-- Slide 1: Hero -->
+            <section class="center">
+                <div class="glass-card" style="padding: 80px 40px;">
+                    <h1 style="font-size: 5em;">ClauseGuard</h1>
+                    <p class="subtext" style="font-size: 1.8em; margin-top: 10px;">Your Pocket Legal Counsel.</p>
                 </div>
-                <div class="glass-panel">
-                    <h3 style="font-size: 2rem; margin-bottom: 16px;">Financial Traps</h3>
-                    <p style="font-size: 1.15rem; color: var(--text-muted); line-height: 1.5;">Predatory non-competes and excessive IP assignments lock workers out of future income.</p>
-                </div>
-                <div class="glass-panel">
-                    <h3 style="font-size: 2rem; margin-bottom: 16px;">Binding Arbitration</h3>
-                    <p style="font-size: 1.15rem; color: var(--text-muted); line-height: 1.5;">Hidden clauses silently strip away the constitutional right to a jury trial for millions.</p>
-                </div>
-            </div>
-        </section>
+            </section>
 
-        <!-- Slide 3: Architecture -->
-        <section class="slide">
-            <h2 class="section-title">Edge-to-Cloud <span class="gradient-text">Architecture</span></h2>
-            <div class="arch-flow">
-                <div class="arch-node">
-                    <div class="glass-panel">
-                        <h4 style="font-size: 1.2rem; margin-bottom: 8px;">Native Client</h4>
-                        <p style="color: var(--text-muted); font-size: 0.9rem;">CameraX & ML Kit OCR</p>
+            <!-- Slide 2: The Problem -->
+            <section>
+                <h2>The <span class="text-red">Problem</span></h2>
+                <div class="glass-grid">
+                    <div class="glass-card fragment fade-up">
+                        <h3>90% Sign Blindly</h3>
+                        <p>Consumers and gig workers accept dense T&Cs and contracts without understanding the hidden liabilities.</p>
+                    </div>
+                    <div class="glass-card fragment fade-up" data-fragment-index="1">
+                        <h3>Predatory Clauses</h3>
+                        <p>Aggressive non-competes, massive IP assignments, and hidden arbitration traps cost everyday people billions.</p>
+                    </div>
+                    <div class="glass-card fragment fade-up" data-fragment-index="2">
+                        <h3>Cost Prohibitive</h3>
+                        <p>Hiring legal counsel to review standard freelance or employment agreements is simply out of reach for most.</p>
                     </div>
                 </div>
-                <div class="arch-arrow">→</div>
-                <div class="arch-node">
-                    <div class="glass-panel">
-                        <h4 style="font-size: 1.2rem; margin-bottom: 8px;">Secure Tunnel</h4>
-                        <p style="color: var(--text-muted); font-size: 0.9rem;">Cloudflare zero-trust HTTPS</p>
-                    </div>
-                </div>
-                <div class="arch-arrow">→</div>
-                <div class="arch-node">
-                    <div class="glass-panel">
-                        <h4 style="font-size: 1.2rem; margin-bottom: 8px;">FastAPI Backend</h4>
-                        <p style="color: var(--text-muted); font-size: 0.9rem;">6-Stage Async Agent Pipeline</p>
-                    </div>
-                </div>
-                <div class="arch-arrow">→</div>
-                <div class="arch-node">
-                    <div class="glass-panel" style="background: rgba(10, 132, 255, 0.1); border-color: rgba(10, 132, 255, 0.3);">
-                        <h4 style="font-size: 1.2rem; margin-bottom: 8px;">Hybrid Engine</h4>
-                        <p style="color: var(--text-muted); font-size: 0.9rem;">Qwen LLM + Pandas Rules</p>
-                    </div>
-                </div>
-            </div>
-        </section>
+            </section>
 
-        <!-- Slide 4: Demo Flow -->
-        <section class="slide">
-            <h2 class="section-title">Native <span class="gradient-text">Experience</span></h2>
-            <div class="grid-3" style="margin-top: 20px;">
-                <!-- Phone 1 -->
-                <div class="phone-mockup">
-                    <div class="phone-badge">1. Edge Capture</div>
-                    <div style="flex: 1; display: flex; align-items: center; justify-content: center;">
-                        <div class="glass-panel" style="padding: 20px; width: 80%; background: rgba(0,0,0,0.5);">
-                            <div style="width: 100%; height: 2px; background: #0A84FF; box-shadow: 0 0 10px #0A84FF; animation: scan 2s infinite alternate;"></div>
-                            <p style="margin-top: 20px; font-size: 0.9rem; color: #aaa;">Scanning Contract...</p>
+            <!-- Slide 3: The Solution -->
+            <section>
+                <h2>The Solution</h2>
+                <div class="glass-card">
+                    <p class="subtext" style="font-size: 1.5em; margin-bottom: 40px;">Instant, deterministic risk scoring and clause-by-clause AI analysis.</p>
+                    <div style="display: flex; justify-content: space-around; font-size: 1.2em;">
+                        <div class="fragment fade-right">
+                            <span style="font-size: 2.5em; color: #32D74B;">✓</span><br>Upload
+                        </div>
+                        <div class="fragment fade-in">
+                            <span style="font-size: 2.5em; color: #0A84FF;">⚡</span><br>Analyze
+                        </div>
+                        <div class="fragment fade-left">
+                            <span style="font-size: 2.5em; color: #FF9F0A;">🛡️</span><br>Protect
                         </div>
                     </div>
                 </div>
-                <!-- Phone 2 -->
-                <div class="phone-mockup">
-                    <div class="phone-badge">2. Risk Analysis</div>
-                    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; width: 100%;">
-                        <div style="width: 120px; height: 120px; border-radius: 50%; border: 8px solid #333; border-top-color: #FF375F; border-right-color: #FF375F; display: flex; align-items: center; justify-content: center;">
-                            <span style="font-size: 2rem; font-weight: bold; color: #FF375F;">8.5</span>
-                        </div>
-                        <div class="glass-panel" style="padding: 16px; width: 90%; transform: perspective(500px) rotateY(-15deg); border-left: 4px solid #FF375F;">
-                            <p style="font-size: 0.8rem; font-weight: bold; text-align: left;">Non-Compete</p>
-                        </div>
-                    </div>
-                </div>
-                <!-- Phone 3 -->
-                <div class="phone-mockup">
-                    <div class="phone-badge">3. Negotiation</div>
-                    <div style="flex: 1; display: flex; align-items: flex-end; width: 100%;">
-                        <div class="glass-panel" style="padding: 20px; width: 100%; border-bottom-left-radius: 0; border-bottom-right-radius: 0; background: rgba(255,255,255,0.1);">
-                            <h4 style="font-size: 0.9rem; margin-bottom: 12px; text-align: left;">Strategy Generator</h4>
-                            <div style="height: 60px; background: rgba(255,255,255,0.05); border-radius: 8px;"></div>
-                            <button style="width: 100%; padding: 12px; margin-top: 16px; border-radius: 12px; background: #0A84FF; color: white; border: none; font-weight: bold;">Copy Rebuttal</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
+            </section>
 
-        <!-- Slide 5: Impact -->
-        <section class="slide">
-            <h2 class="section-title">Scalability & <span style="color: #32D74B">Impact</span></h2>
-            <div class="grid-3" style="grid-template-columns: repeat(2, 1fr);">
-                <div class="glass-panel" style="grid-column: span 2; display: flex; align-items: center; gap: 24px;">
-                    <div style="font-size: 3rem;">🔒</div>
-                    <div>
-                        <h3 style="font-size: 1.5rem; margin-bottom: 8px;">Privacy-First Edge Processing</h3>
-                        <p style="color: var(--text-muted); line-height: 1.5;">Images never leave the device. Local ML Kit OCR guarantees physical documents remain confidential, transmitting only raw text over zero-trust tunnels.</p>
+            <!-- Slide 4: Ingestion -->
+            <section>
+                <h2>Frictionless Ingestion</h2>
+                <div class="glass-grid" style="grid-template-columns: 1fr 1fr;">
+                    <div class="glass-card fragment fade-up">
+                        <h3>Native Edge Scanning</h3>
+                        <p>We built directly on top of <strong>Google ML Kit</strong>'s Document Scanner API. It runs purely on-device, offering native edge detection, perspective cropping, and instant OCR without compromising physical document privacy.</p>
+                    </div>
+                    <div class="glass-card fragment fade-up" data-fragment-index="1">
+                        <h3>Enterprise File Uploads</h3>
+                        <p>Users can natively browse their local files or cloud drives to securely upload standard <strong>PDF and DOCX</strong> formats directly into the analysis pipeline via multi-part network streaming.</p>
                     </div>
                 </div>
-                <div class="glass-panel">
-                    <div style="font-size: 3rem; margin-bottom: 16px;">⚡</div>
-                    <h3 style="font-size: 1.5rem; margin-bottom: 8px;">Zero-Cost OSS Engine</h3>
-                    <p style="color: var(--text-muted); line-height: 1.5;">By pairing the open-source Qwen LLM with a deterministic Pandas scoring engine, we achieve enterprise-grade analysis without API token bloat.</p>
+            </section>
+
+            <!-- Slide 5: The AI Engine -->
+            <section>
+                <h2>The <span style="color: #FF9F0A;">Groq</span> Engine</h2>
+                <div class="glass-card">
+                    <h3 style="color: white; margin-bottom: 20px;">Sub-Second Agentic Routing</h3>
+                    <ul style="font-size: 1.2em; line-height: 1.8; color: #E5E5EA;">
+                        <li class="fragment"><strong>LPU Acceleration:</strong> Powered by Groq for ultra-fast, low-latency inference.</li>
+                        <li class="fragment"><strong>Asyncio Parallelism:</strong> The FastAPI backend executes multi-agent workflows concurrently, massively reducing wall-clock execution time.</li>
+                        <li class="fragment"><strong>Intelligent Caching:</strong> A robust local caching layer intercepts identical requests, bypassing API rate limits entirely for zero-latency retrieval.</li>
+                    </ul>
                 </div>
-                <div class="glass-panel">
-                    <div style="font-size: 3rem; margin-bottom: 16px;">🏢</div>
-                    <h3 style="font-size: 1.5rem; margin-bottom: 8px;">Enterprise Monetization</h3>
-                    <p style="color: var(--text-muted); line-height: 1.5;">B2C freemium tier democratizes access, while a B2B API tier allows HR and procurement teams to mass-audit vendor agreements instantly.</p>
+            </section>
+
+            <!-- Slide 6: Secure Vault -->
+            <section>
+                <h2>The Secure Vault</h2>
+                <div class="glass-grid" style="grid-template-columns: 1fr 2fr;">
+                    <div style="display: flex; align-items: center; justify-content: center; font-size: 6em;">
+                        🗄️
+                    </div>
+                    <div class="glass-card" style="margin: 0;">
+                        <h3 style="color: white;">Local-First Persistence</h3>
+                        <p style="font-size: 1.2em; margin-bottom: 15px;">We built a native <strong>Room Database</strong> layer into the Android client.</p>
+                        <p style="font-size: 1.1em;">All highly sensitive contract analyses are persisted strictly on the device. Users get a premium "Vault" UI with swipe-to-delete management, guaranteeing absolute data sovereignty with zero cloud storage lock-in.</p>
+                    </div>
                 </div>
-            </div>
-        </section>
+            </section>
+
+            <!-- Slide 7: The Stack -->
+            <section>
+                <h2>The Stack</h2>
+                <div class="tech-tags">
+                    <span class="tech-tag fragment zoom-in">Kotlin</span>
+                    <span class="tech-tag fragment zoom-in">Jetpack Compose</span>
+                    <span class="tech-tag fragment zoom-in">Room DB</span>
+                    <span class="tech-tag fragment zoom-in">Google ML Kit</span>
+                    <span class="tech-tag fragment zoom-in">Python 3</span>
+                    <span class="tech-tag fragment zoom-in">FastAPI</span>
+                    <span class="tech-tag fragment zoom-in">Asyncio</span>
+                    <span class="tech-tag fragment zoom-in">Groq LPUs</span>
+                    <span class="tech-tag fragment zoom-in">Cloudflared</span>
+                </div>
+            </section>
+
+            <!-- Slide 8: Conclusion -->
+            <section class="center">
+                <div class="glass-card">
+                    <h2 class="text-green" style="margin-bottom: 20px;">Negotiate with Power</h2>
+                    <p class="subtext" style="font-size: 1.5em; margin-bottom: 40px;">ClauseGuard doesn't just score risks—it generates a ready-to-send negotiation strategy for every flagged clause.</p>
+                    <h3 style="color: white; font-size: 2.5em;">Thank You.</h3>
+                    <p style="color: #0A84FF; font-weight: bold; margin-top: 20px;">Q & A</p>
+                </div>
+            </section>
+
+        </div>
     </div>
 
-    <!-- Navigation -->
-    <div class="controls">
-        <button class="btn" id="prevBtn">← Prev</button>
-        <button class="btn" id="nextBtn">Next →</button>
-    </div>
-    <div class="progress-bar" id="progress"></div>
-
+    <!-- Reveal.js Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reveal.min.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const slides = document.querySelectorAll('.slide');
-            const prevBtn = document.getElementById('prevBtn');
-            const nextBtn = document.getElementById('nextBtn');
-            const progress = document.getElementById('progress');
-            let currentSlide = 0;
-
-            function updateDeck() {
-                slides.forEach((slide, index) => {
-                    if (index === currentSlide) {
-                        slide.classList.add('active');
-                    } else {
-                        slide.classList.remove('active');
-                        // Reset transform for sliding effect
-                        if (index < currentSlide) {
-                            slide.style.transform = 'scale(0.95) translateY(-20px)';
-                        } else {
-                            slide.style.transform = 'scale(0.95) translateY(20px)';
-                        }
-                    }
-                });
-
-                // Update progress bar
-                const progressWidth = ((currentSlide + 1) / slides.length) * 100;
-                progress.style.width = `${progressWidth}%`;
-
-                // Update button states
-                prevBtn.style.opacity = currentSlide === 0 ? '0.3' : '1';
-                prevBtn.style.pointerEvents = currentSlide === 0 ? 'none' : 'auto';
-
-                nextBtn.style.opacity = currentSlide === slides.length - 1 ? '0.3' : '1';
-                nextBtn.style.pointerEvents = currentSlide === slides.length - 1 ? 'none' : 'auto';
-            }
-
-            function next() {
-                if (currentSlide < slides.length - 1) {
-                    currentSlide++;
-                    updateDeck();
-                }
-            }
-
-            function prev() {
-                if (currentSlide > 0) {
-                    currentSlide--;
-                    updateDeck();
-                }
-            }
-
-            nextBtn.addEventListener('click', next);
-            prevBtn.addEventListener('click', prev);
-
-            document.addEventListener('keydown', (e) => {
-                if (e.key === 'ArrowRight' || e.key === ' ') {
-                    next();
-                } else if (e.key === 'ArrowLeft') {
-                    prev();
-                }
-            });
-
-            // Initialize
-            updateDeck();
+        Reveal.initialize({
+            hash: true,
+            controls: true,
+            progress: true,
+            center: true,
+            transition: 'fade', // Smooth fading transitions
+            backgroundTransition: 'fade',
         });
     </script>
 </body>
