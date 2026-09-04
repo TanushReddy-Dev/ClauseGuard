@@ -307,9 +307,8 @@ fun CaptureScreen(vm: ContractViewModel = viewModel(), onBack: () -> Unit = {}) 
         when (uiState) {
             is UiState.Success -> {
                 val successState = uiState as UiState.Success
-                com.clauseguard.app.ui.screens.InteractiveDocumentScreen(
+                com.clauseguard.app.ui.screens.ResultsScreen(
                     report = successState.report,
-                    rawText = successState.rawText,
                     onBack = onBack
                 )
             }
