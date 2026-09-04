@@ -3,6 +3,7 @@ package com.clauseguard.app.ui.screens
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -41,6 +42,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.clauseguard.app.data.AppDatabase
@@ -52,7 +54,10 @@ import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(onNavigateToScan: () -> Unit) {
+fun HomeScreen(
+    onNavigateToScan: () -> Unit,
+    onNavigateToResult: (String) -> Unit
+) {
     val context = LocalContext.current
     val db = AppDatabase.getDatabase(context)
     val dao = db.contractDao()
@@ -93,7 +98,7 @@ fun HomeScreen(onNavigateToScan: () -> Unit) {
                     Text(
                         text = "No contracts scanned yet.\nYour vault is empty.",
                         color = Color.Gray,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        textAlign = TextAlign.Center,
                         lineHeight = 24.sp
                     )
                 }
@@ -106,7 +111,7 @@ fun HomeScreen(onNavigateToScan: () -> Unit) {
                         val dismissState = rememberSwipeToDismissBoxState(
                             confirmValueChange = { state ->
                                 if (state == SwipeToDismissBoxValue.EndToStart) {
-                                    scope.launch { dao.deleteContract(contract) }
+                                    scope.launch { dao.deleteContractById(contract.id) }
                                     true
                                 } else false
                             }
@@ -140,7 +145,10 @@ fun HomeScreen(onNavigateToScan: () -> Unit) {
                                 }
                             },
                             content = {
-                                VaultCard(contract)
+                                VaultCard(
+                                    contract = contract,
+                                    onClick = { onNavigateToResult(contract.summaryJson) }
+                                )
                             },
                             enableDismissFromStartToEnd = false
                         )
@@ -164,7 +172,7 @@ fun HomeScreen(onNavigateToScan: () -> Unit) {
 }
 
 @Composable
-private fun VaultCard(contract: ContractEntity) {
+private fun VaultCard(contract: ContractEntity, onClick: () -> Unit) {
     val formatter = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
     val dateString = formatter.format(Date(contract.date))
 
@@ -177,7 +185,8 @@ private fun VaultCard(contract: ContractEntity) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp),
+            .padding(vertical = 8.dp)
+            .clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color(0xFF1C1C1E)),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)

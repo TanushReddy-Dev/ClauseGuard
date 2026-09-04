@@ -56,6 +56,9 @@ dependencies {
     // ML Kit text recognition (Play Services unbundled version)
     implementation("com.google.android.gms:play-services-mlkit-text-recognition:19.0.0")
 
+    // ML Kit Document Scanner
+    implementation("com.google.android.gms:play-services-mlkit-document-scanner:16.0.0-beta1")
+
     // Networking — Retrofit + kotlinx.serialization
     implementation("com.squareup.retrofit2:retrofit:2.11.0")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
