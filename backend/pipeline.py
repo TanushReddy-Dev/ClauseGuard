@@ -218,8 +218,10 @@ async def run_full_pipeline(raw_ocr_text: str) -> AnalysisReport:
     text_hash = compute_hash(raw_ocr_text)
     cached = get_cached_response(text_hash)
     if cached is not None:
-        logger.info("Returning cached result for hash %s…%s", text_hash[:8], text_hash[-4:])
+        logger.info("[CACHE HIT] Returning cached result for hash %s…%s", text_hash[:8], text_hash[-4:])
         return AnalysisReport(**cached)
+    
+    logger.info("[CACHE MISS] Running analysis pipeline for hash %s…%s", text_hash[:8], text_hash[-4:])
 
     # --- Stage 1: Segmentation (deterministic) ---
     raw_clauses = segment_clauses(raw_ocr_text)
