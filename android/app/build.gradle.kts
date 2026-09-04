@@ -3,6 +3,7 @@ plugins {
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
     id("org.jetbrains.kotlin.plugin.serialization")
+    id("com.google.devtools.ksp") version "2.0.0-1.0.22"
 }
 
 android {
@@ -17,7 +18,7 @@ android {
         versionName = "1.0"
 
         // Backend URL — override via local.properties or build config for prod
-        buildConfigField("String", "BASE_URL", "\"http://10.0.2.2:8000\"")
+        buildConfigField("String", "BASE_URL", "\"http://192.168.180.220:8000\"")
     }
 
     buildFeatures {
@@ -52,20 +53,31 @@ dependencies {
     implementation("androidx.camera:camera-lifecycle:$cameraVersion")
     implementation("androidx.camera:camera-view:$cameraVersion")
 
-    // ML Kit text recognition
-    implementation("com.google.mlkit:text-recognition:16.0.1")
+    // ML Kit text recognition (Play Services unbundled version)
+    implementation("com.google.android.gms:play-services-mlkit-text-recognition:19.0.0")
 
-    // Networking — Ktor client
-    val ktorVersion = "2.3.12"
-    implementation("io.ktor:ktor-client-core:$ktorVersion")
-    implementation("io.ktor:ktor-client-okhttp:$ktorVersion")
-    implementation("io.ktor:ktor-client-content-negotiation:$ktorVersion")
-    implementation("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
+    // ML Kit Document Scanner
+    implementation("com.google.android.gms:play-services-mlkit-document-scanner:16.0.0-beta1")
+
+    // Networking — Retrofit + kotlinx.serialization
+    implementation("com.squareup.retrofit2:retrofit:2.11.0")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("com.jakewharton.retrofit:retrofit2-kotlinx-serialization-converter:1.0.0")
 
     // Serialization
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.1")
 
     // Lifecycle
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.4")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.4")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.4")
+
+    // Navigation
+    implementation("androidx.navigation:navigation-compose:2.7.7")
+
+    // Room Database
+    val roomVersion = "2.6.1"
+    implementation("androidx.room:room-runtime:$roomVersion")
+    implementation("androidx.room:room-ktx:$roomVersion")
+    ksp("androidx.room:room-compiler:$roomVersion")
 }
