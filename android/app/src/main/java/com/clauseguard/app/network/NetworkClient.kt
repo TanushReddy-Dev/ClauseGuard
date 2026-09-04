@@ -37,7 +37,7 @@ object NetworkClient {
         .build()
 
     private val retrofit: Retrofit = Retrofit.Builder()
-        .baseUrl("https://dna-conferences-erp-qld.trycloudflare.com/")
+        .baseUrl("https://clauseguard-api-29de.onrender.com/")
         .client(okHttp)
         .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
         .build()
