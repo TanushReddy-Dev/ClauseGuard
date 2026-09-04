@@ -13,6 +13,7 @@ Pipeline stages:
   7. Cache save — persist the result for future instant retrieval.
 """
 
+import asyncio
 import logging
 import re
 
@@ -23,7 +24,7 @@ from schemas import (
     RiskLevel,
 )
 from agents.extraction_agent import run_extraction_agent
-from agents.classification_agent import run_classification_agent
+from agents import classification_agent
 from agents.explainer_agent import run_explainer_agent
 from cache_layer import compute_hash, get_cached_response, save_to_cache
 
@@ -247,8 +248,19 @@ async def run_full_pipeline(raw_ocr_text: str) -> AnalysisReport:
     candidates = match_candidates(cleaned_clauses)
     logger.info("Stage 3 complete: candidate matching done.")
 
-    # --- Stage 4: Classification Agent (LLM — batched confirmation) ---
-    classifications = await run_classification_agent(cleaned_clauses, candidates)
+
+    # --- Stage 4: Classification Agent (LLM — concurrent confirmation) ---
+    tasks = [classification_agent.analyze(clause, cands) for clause, cands in zip(cleaned_clauses, candidates)]
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+    
+    classifications = []
+    for res in results:
+        if isinstance(res, Exception):
+            logger.error("Classification task failed: %s", res)
+            classifications.append({"best_match": "unknown", "confidence": 0.0, "reasoning": "Task failed"})
+        else:
+            classifications.append(res)
+            
     logger.info("Stage 4 complete: classification agent confirmed %d clauses.", len(classifications))
 
     # --- Stage 5: Risk scoring (deterministic) ---

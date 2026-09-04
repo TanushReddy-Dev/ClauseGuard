@@ -40,7 +40,7 @@ class FeatherlessProvider(LLMProvider):
         self._client = AsyncOpenAI(
             base_url="https://api.featherless.ai/v1",
             api_key=api_key,
-            timeout=15.0,  # fast timeout to trigger fallbacks before Demo Guard
+            timeout=10.0,  # fast timeout to trigger fallbacks before Demo Guard
         )
         self._model = model
         self._temperature = temperature
