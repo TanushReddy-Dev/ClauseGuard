@@ -153,3 +153,14 @@ async def analyze_file(file: UploadFile = File(...)):
         )
 
     return report
+
+if __name__ == "__main__":
+    import os
+    import uvicorn
+    
+    # Render dynamically assigns a PORT environment variable.
+    # We default to 8000 for local development.
+    port = int(os.environ.get("PORT", 8000))
+    
+    # Bind to 0.0.0.0 to expose the server to the outside world
+    uvicorn.run("main:app", host="0.0.0.0", port=port, log_level="info")

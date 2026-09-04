@@ -9,3 +9,5 @@ openai==1.82.0
 PyMuPDF==1.23.26
 python-docx==1.1.0
 scikit-learn==1.9.0
+gunicorn==21.2.0
+uvicorn[standard]==0.34.0
