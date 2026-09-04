@@ -139,10 +139,7 @@ class ContractViewModel : ViewModel() {
         uiState = UiState.Loading
         viewModelScope.launch {
             uiState = try {
-                val report = NetworkClient.analyzeContract(
-                    imageBytes = extractedText.toByteArray(),
-                    fileName = "scanned_contract.txt",
-                )
+                val report = NetworkClient.analyzeContract(text = extractedText)
                 UiState.Success(report)
             } catch (e: Exception) {
                 UiState.Error(e.message ?: "Analysis failed")
@@ -167,11 +164,26 @@ fun CaptureScreen(vm: ContractViewModel = viewModel()) {
         // Only show Capture UI when idle to avoid overlapping the success screen
         if (uiState is UiState.Idle) {
             com.clauseguard.app.ui.screens.CameraCaptureScreen(
-                onDocumentCaptured = { bytes, fileName ->
-                    // Note: In a complete implementation, we would extract text using ML Kit OCR here
-                    // before sending to the backend, or the backend would handle the OCR of the JPEG.
-                    // For now, we simulate OCR extraction text.
-                    vm.sendContract("Simulated extracted text from ML Kit")
+                onDocumentCaptured = { bytes, _ ->
+                    // Decode bytes to Bitmap for ML Kit Text Recognition
+                    val bitmap = android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                    if (bitmap != null) {
+                        val image = InputImage.fromBitmap(bitmap, 0)
+                        val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+
+                        recognizer.process(image)
+                            .addOnSuccessListener { visionText ->
+                                val recognizedText = visionText.text
+                                android.util.Log.d("ClauseGuard", "OCR Success: Extracted \${recognizedText.length} chars")
+                                vm.sendContract(recognizedText)
+                            }
+                            .addOnFailureListener { e ->
+                                android.util.Log.e("ClauseGuard", "OCR Failed", e)
+                                vm.setError("OCR extraction failed: \${e.localizedMessage}")
+                            }
+                    } else {
+                        vm.setError("Failed to decode scanned image")
+                    }
                 },
                 onError = { err -> vm.setError(err) }
             )

@@ -3,6 +3,12 @@ package com.clauseguard.app.models
 import kotlinx.serialization.Serializable
 
 @Serializable
+data class ClauseInput(
+    val text: String,
+    val page: Int? = null
+)
+
+@Serializable
 data class ClauseClassification(
     val category: String,
     val confidence: Double,
