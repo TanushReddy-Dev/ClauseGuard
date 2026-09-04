@@ -13,6 +13,7 @@ manual inspection / pruning trivial.
 """
 
 import hashlib
+import string
 import json
 import logging
 import os
@@ -37,16 +38,6 @@ def _ensure_cache_dir() -> Path:
     return _CACHE_DIR
 
 
-def normalize_text(raw_text: str) -> str:
-    """Normalize contract text for consistent hashing.
-
-    Strips leading/trailing whitespace, collapses runs of whitespace to a
-    single space, and lowercases.  This means trivially reformatted copies of
-    the same contract hit the same cache entry.
-    """
-    text = raw_text.strip()
-    text = re.sub(r"\s+", " ", text)
-    return text.lower()
 
 
 def compute_hash(raw_text: str) -> str:
@@ -119,3 +110,18 @@ def list_cached_hashes() -> list[str]:
         for p in cache_dir.glob("*.json")
         if len(p.stem) == 64  # SHA-256 hex length
     )
+import string
+
+def normalize_text(raw_text: str) -> str:
+    """Normalize contract text for consistent hashing.
+
+    Strips leading/trailing whitespace, collapses runs of whitespace to a
+    single space, removes punctuation, and lowercases.  This means trivially
+    reformatted or slightly noisy OCR copies of the same contract hit the
+    same cache entry.
+    """
+    text = raw_text.strip()
+    text = text.lower()
+    text = text.translate(str.maketrans("", "", string.punctuation))
+    text = re.sub(r"\s+", " ", text)
+    return text.strip()

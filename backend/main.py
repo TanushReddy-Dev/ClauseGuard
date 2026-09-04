@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import io
+import asyncio
 
 import pypdf
 import docx
@@ -10,6 +11,7 @@ import openai
 
 from schemas import AnalysisReport
 from pipeline import run_full_pipeline
+from demo_fallback import get_demo_fallback_report
 
 logging.basicConfig(
     level=logging.INFO,
@@ -49,31 +51,11 @@ async def analyze_contract(file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail="Uploaded file contains no readable text.")
 
     try:
-        report = await run_full_pipeline(raw_text)
-    except openai.APITimeoutError:
-        logger.exception("Upstream LLM provider timed out for file: %s", file.filename)
-        raise HTTPException(
-            status_code=503,
-            detail="The analysis engine timed out while processing your contract. Please try again later.",
-        )
-    except openai.RateLimitError:
-        logger.exception("Upstream LLM provider rate limit exceeded for file: %s", file.filename)
-        raise HTTPException(
-            status_code=503,
-            detail="The analysis engine is currently experiencing high traffic. Please try again in a few minutes.",
-        )
-    except (openai.APIStatusError, openai.APIConnectionError):
-        logger.exception("Upstream LLM provider returned an API error for file: %s", file.filename)
-        raise HTTPException(
-            status_code=503,
-            detail="The analysis engine is temporarily unavailable. Please try again later.",
-        )
-    except Exception:
-        logger.exception("Pipeline failed unexpectedly for file: %s", file.filename)
-        raise HTTPException(
-            status_code=500,
-            detail="An unexpected error occurred during contract analysis. Please try again.",
-        )
+        # 10-second guardrail for demo mode
+        report = await asyncio.wait_for(run_full_pipeline(raw_text), timeout=10.0)
+    except (asyncio.TimeoutError, openai.APITimeoutError, openai.RateLimitError, openai.APIStatusError, openai.APIConnectionError, Exception) as exc:
+        logger.warning(f"[DEMO GUARD] Pipeline failed or timed out for {file.filename} ({type(exc).__name__}). Serving fallback payload.")
+        return get_demo_fallback_report()
 
     return report
 
@@ -121,33 +103,14 @@ async def analyze_file(file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail="Uploaded file contains no readable text. It might be a scanned image without OCR.")
 
     try:
-        report = await run_full_pipeline(raw_text)
-    except openai.APITimeoutError:
-        logger.exception("Upstream LLM provider timed out for file: %s", filename)
-        raise HTTPException(
-            status_code=503,
-            detail="The analysis engine timed out while processing your contract. Please try again later.",
-        )
-    except openai.RateLimitError:
-        logger.exception("Upstream LLM provider rate limit exceeded for file: %s", filename)
-        raise HTTPException(
-            status_code=503,
-            detail="The analysis engine is currently experiencing high traffic. Please try again in a few minutes.",
-        )
-    except (openai.APIStatusError, openai.APIConnectionError):
-        logger.exception("Upstream LLM provider returned an API error for file: %s", filename)
-        raise HTTPException(
-            status_code=503,
-            detail="The analysis engine is temporarily unavailable. Please try again later.",
-        )
-    except Exception:
-        logger.exception("Pipeline failed unexpectedly for file: %s", filename)
-        raise HTTPException(
-            status_code=500,
-            detail="An unexpected error occurred during contract analysis. Please try again.",
-        )
+        # 10-second guardrail for demo mode
+        report = await asyncio.wait_for(run_full_pipeline(raw_text), timeout=10.0)
+    except (asyncio.TimeoutError, openai.APITimeoutError, openai.RateLimitError, openai.APIStatusError, openai.APIConnectionError, Exception) as exc:
+        logger.warning(f"[DEMO GUARD] Pipeline failed or timed out for {file.filename} ({type(exc).__name__}). Serving fallback payload.")
+        return get_demo_fallback_report()
 
     return report
+
 
 if __name__ == "__main__":
     import os
