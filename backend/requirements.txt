@@ -6,7 +6,7 @@ python-dotenv==1.0.1
 httpx==0.28.1
 python-multipart==0.0.20
 openai==1.82.0
-PyMuPDF==1.23.26
+pypdf==4.1.0
 python-docx==1.1.0
 scikit-learn==1.9.0
 gunicorn==21.2.0

@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import io
 
-import fitz  # PyMuPDF
+import pypdf
 import docx
 from fastapi import FastAPI, File, HTTPException, UploadFile
 import openai
@@ -96,13 +96,8 @@ async def analyze_file(file: UploadFile = File(...)):
 
     if filename_lower.endswith(".pdf") or file.content_type == "application/pdf":
         try:
-            pdf_document = fitz.open(stream=raw_bytes, filetype="pdf")
-            extracted_text = []
-            for page_num in range(pdf_document.page_count):
-                page = pdf_document.load_page(page_num)
-                extracted_text.append(page.get_text("text"))
-            pdf_document.close()
-            raw_text = "\n\n".join(extracted_text)
+            reader = pypdf.PdfReader(io.BytesIO(raw_bytes))
+            raw_text = "\n\n".join([page.extract_text() or "" for page in reader.pages])
         except Exception as exc:
             logger.exception("Failed to open PDF file: %s", filename)
             raise HTTPException(status_code=415, detail="The uploaded file is not a valid PDF or is corrupted.")
