@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
+from typing import Optional
 from pydantic import BaseModel, Field
 
 
@@ -13,7 +14,7 @@ class RiskLevel(str, Enum):
 
 class ClauseInput(BaseModel):
     text: str
-    page: int | None = None  # source page if multi-page contract
+    page: Optional[int] = None  # source page if multi-page contract
 
 
 class ClauseClassification(BaseModel):
