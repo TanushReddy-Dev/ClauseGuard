@@ -130,24 +130,24 @@ def _make_provider(model: str, **kwargs) -> GroqProvider:
 PROVIDER_REGISTRY: dict[str, LLMProvider] = {
     "extraction": FallbackProvider([
         _make_provider(
-            "qwen/qwen3.8-27b",
-            temperature=0.1,   
-            max_tokens=8192,   
+            "openai/gpt-oss-20b",
+            temperature=0.1,
+            max_tokens=8192,
         ),
         _make_provider(
-            "openai/gpt-oss-20b",
+            "allam-2-7b",
             temperature=0.1,
             max_tokens=8192,
         ),
     ]),
     "classification": FallbackProvider([
         _make_provider(
-            "qwen/qwen3.8-27b",
-            temperature=0.0,   
+            "openai/gpt-oss-20b",
+            temperature=0.0,
             max_tokens=8192,
         ),
         _make_provider(
-            "openai/gpt-oss-20b",
+            "allam-2-7b",
             temperature=0.0,
             max_tokens=8192,
         ),
@@ -159,9 +159,9 @@ PROVIDER_REGISTRY: dict[str, LLMProvider] = {
             max_tokens=8192,   
         ),
         _make_provider(
-            "qwen/qwen3.8-27b",
-            temperature=0.4,
-            max_tokens=8192,
+            "openai/gpt-oss-20b",
+            temperature=0.4,   
+            max_tokens=8192,   
         ),
     ]),
 }
