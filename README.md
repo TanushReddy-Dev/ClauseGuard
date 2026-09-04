@@ -1,9 +1,10 @@
-# ClauseGuard
-> Exposing predatory contract clauses in seconds through edge-native scanning and Groq-powered multi-agent AI.
+# ClauseGuard ⚖️🛡️
+
+> **Exposing predatory contract clauses in seconds through edge-native scanning and Groq-powered multi-agent AI.**
 
 ---
 
-## The Problem & Solution
+## 🛑 The Problem & 💡 The Solution
 
 **The Problem:** Everyday consumers and gig workers sign away their rights because hiring a lawyer to review dense, opaque legal contracts is cost-prohibitive. As a result, people routinely fall victim to broad non-competes, aggressive IP assignments, and hidden binding arbitration traps.
 
@@ -11,7 +12,7 @@
 
 ---
 
-## System Architecture
+## 🏗️ System Architecture
 
 ```text
 [ Physical Contract / PDF / DOCX ]
@@ -49,7 +50,7 @@
 
 ---
 
-## Technology Stack
+## 🛠️ Technology Stack
 
 | Architectural Layer | Technologies Used |
 | :--- | :--- |
@@ -61,12 +62,12 @@
 
 ---
 
-## Frictionless Installation
+## 🚀 Frictionless Installation
 
 ### 1. Backend & AI Pipeline
 ```bash
 # Clone the repository and setup Python environment
-cd ClauseGuard/backend
+cd backend
 python -m venv venv
 source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -r requirements.txt
@@ -88,7 +89,7 @@ cloudflared tunnel --url http://localhost:8000
 ### 3. Android Client
 ```bash
 # Navigate to the Android project root
-cd ../android
+cd android
 
 # Update the API endpoint in your build configuration
 # Edit android/app/build.gradle.kts:
@@ -101,7 +102,7 @@ cd ../android
 
 ---
 
-## Core Differentiators
+## 🌟 Core Differentiators
 
 * **Absolute Data Sovereignty:** Contract photos are processed entirely on-device using ML Kit, and all highly sensitive contract analyses are persisted strictly on the device using a native **Room Database**. Zero cloud storage lock-in.
 * **Ultra-Low Latency Inference:** By replacing standard API bottlenecks with **Groq LPUs** and implementing **Asyncio parallelism**, the backend executes its complex multi-agent workflow in a fraction of a second. A local caching layer instantly serves identical requests to completely bypass API round-trips.
