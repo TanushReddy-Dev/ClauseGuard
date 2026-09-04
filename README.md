@@ -1,5 +1,5 @@
 # ClauseGuard
-> Exposing predatory contract clauses in seconds through edge-native OCR and hybrid AI deterministic scoring.
+> Exposing predatory contract clauses in seconds through edge-native scanning and Groq-powered multi-agent AI.
 
 ---
 
@@ -7,48 +7,44 @@
 
 **The Problem:** Everyday consumers and gig workers sign away their rights because hiring a lawyer to review dense, opaque legal contracts is cost-prohibitive. As a result, people routinely fall victim to broad non-competes, aggressive IP assignments, and hidden binding arbitration traps.
 
-**The Solution:** ClauseGuard serves as a legal expert in your pocket. By combining on-device OCR with a 6-stage hybrid LLM pipeline, the system instantly isolates high-risk clauses, calculates a deterministic risk score, and provides actionable negotiation scripts—all before you sign.
+**The Solution:** ClauseGuard serves as a legal expert in your pocket. By combining on-device ML Kit document scanning with an ultra-fast, Groq-accelerated LLM pipeline, the system instantly isolates high-risk clauses, calculates a risk score, and provides actionable negotiation scripts—all safely persisted in a local on-device vault.
 
 ---
 
 ## System Architecture
 
 ```text
-[ Physical Contract ]
-         │
-         ▼
-┌───────────────────┐    1. Local edge OCR preserves privacy.
-│  Android Client   │       Images never leave the device.
-│    (CameraX)      │
-└─────────┬─────────┘
-          │
-          ▼
-┌───────────────────┐    2. Extracted text transmitted securely.
-│  Google ML Kit    │       Only raw text strings are sent.
-└─────────┬─────────┘
-          │
-  (Cloudflare Tunnel)    3. Zero-trust HTTPS bypasses restrictive subnets.
-          │
-          ▼
-┌───────────────────┐    4. High-performance async endpoint handles
-│  FastAPI Backend  │       incoming payload.
-└─────────┬─────────┘
-          │
-     ┌────┴────┐
-     ▼         ▼
-┌────────┐ ┌────────┐    5. Hybrid Engine: LLM parses and classifies;
-│  Qwen  │ │ Pandas │       Pandas enforces strict risk scoring rules
-│  LLM   │ │ Engine │       to eliminate math hallucinations.
-└────────┘ └────────┘
-     │         │
-     └────┬────┘
-          ▼
-[ JSON Risk Report  ]    6. Rendered natively with physics-based
-          │                 3D flip cards and frosted glass UI.
-          ▼
-┌───────────────────┐
-│  Jetpack Compose  │
-└───────────────────┘
+[ Physical Contract / PDF / DOCX ]
+                │
+                ▼
+      ┌───────────────────┐    1. Ingestion: ML Kit Document Scanner provides edge 
+      │  Android Client   │       detection & OCR. Users can also natively upload
+      │ (Jetpack Compose) │       PDF and DOCX files.
+      └─────────┬─────────┘
+                │
+         (Cloudflare Tunnel)   2. Zero-trust HTTPS tunnel bypasses restrictive subnets.
+                │
+                ▼
+      ┌───────────────────┐    3. Asyncio API: High-performance backend intercepts
+      │  FastAPI Backend  │       the payload and checks the Local Cache Layer to
+      │  & Caching Layer  │       bypass LLM processing for known contracts.
+      └─────────┬─────────┘
+                │
+           ┌────┴────┐
+           ▼         ▼
+      ┌────────┐ ┌────────┐    4. Hybrid Engine: Groq LPUs execute a multi-agent
+      │  Groq  │ │ Pandas │       chain in parallel for zero-latency extraction, 
+      │  LPUs  │ │ Engine │       while Pandas enforces strict risk scoring math.
+      └────────┘ └────────┘
+           │         │
+           └────┬────┘
+                ▼
+      [ JSON Risk Report  ]    5. Delivery: Rendered natively with physics-based
+                │                 3D flip cards and frosted glass UI.
+                ▼
+      ┌───────────────────┐    6. Secure Vault: Analysis is saved to an on-device
+      │ Room DB (Android) │       Room Database, guaranteeing absolute data 
+      └───────────────────┘       sovereignty with zero cloud storage dependency.
 ```
 
 ---
@@ -57,10 +53,11 @@
 
 | Architectural Layer | Technologies Used |
 | :--- | :--- |
-| **Frontend** | Android, Kotlin, Jetpack Compose, CameraX, Material 3 |
-| **Backend** | Python 3, FastAPI, Retrofit, Cloudflared (Tunnels) |
-| **AI/ML Infrastructure** | Google ML Kit (Edge OCR), Featherless AI, Qwen LLM |
-| **Data & Logic** | Pandas (Deterministic Rule Engine) |
+| **Frontend** | Android, Kotlin, Jetpack Compose, Material 3 |
+| **Local Storage** | Room Database, Kotlin Coroutines (Flow) |
+| **Backend** | Python 3, FastAPI, Asyncio, Cloudflared (Tunnels) |
+| **AI/ML Infrastructure** | Google ML Kit (Edge Document Scanner), Groq LPUs |
+| **Data & Logic** | Pandas (Deterministic Rule Engine), Intelligent Caching |
 
 ---
 
@@ -74,8 +71,8 @@ python -m venv venv
 source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 
-# Configure AI Routing (Featherless AI)
-export FEATHERLESS_API_KEY="your_api_key_here"
+# Configure AI Routing (Groq API)
+export GROQ_API_KEY="your_groq_api_key_here"
 
 # Spin up the FastAPI server
 uvicorn main:app --host 0.0.0.0 --port 8000
@@ -100,12 +97,13 @@ cd ../android
 # Clean and build the APK
 ./gradlew clean assembleDebug
 ```
-*Note: Deploy to a physical Android device to test CameraX and ML Kit functionality.*
+*Note: Deploy to a physical Android device to test the ML Kit Document Scanner and Haptics functionality.*
 
 ---
 
 ## Core Differentiators
 
-* **Privacy-First Edge Processing:** Contract photos are processed entirely on-device using ML Kit OCR. Only raw extracted text strings transmit to the cloud, guaranteeing sensitive legal images are never stored or intercepted.
-* **Hybrid Deterministic Scoring:** Generative AI is used strictly for natural language extraction and classification, feeding directly into a **Pandas-based deterministic rule engine**. This eliminates LLM hallucination in risk scoring, ensuring enterprise-grade consistency.
-* **Zero-Cost OSS Routing:** Utilizing the open-source Qwen model served via Featherless AI allows the 6-stage agentic workflow to operate at zero API token cost, bypassing the massive financial overhead of proprietary cloud AI models.
+* **Absolute Data Sovereignty:** Contract photos are processed entirely on-device using ML Kit, and all highly sensitive contract analyses are persisted strictly on the device using a native **Room Database**. Zero cloud storage lock-in.
+* **Ultra-Low Latency Inference:** By replacing standard API bottlenecks with **Groq LPUs** and implementing **Asyncio parallelism**, the backend executes its complex multi-agent workflow in a fraction of a second. A local caching layer instantly serves identical requests to completely bypass API round-trips.
+* **Hybrid Deterministic Scoring:** Generative AI handles natural language extraction, feeding directly into a **Pandas-based deterministic rule engine**. This eliminates LLM hallucination in risk scoring, ensuring enterprise-grade math and consistency.
+* **Premium Tactile UX:** A fully native Compose interface rejects cross-platform jank, featuring 60fps physics-based 3D flip cards, frosted glass overlays, and dynamic haptic feedback.
