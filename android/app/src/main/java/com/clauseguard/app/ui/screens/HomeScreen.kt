@@ -212,7 +212,7 @@ fun HomeScreen(
                                     Icon(
                                         imageVector = Icons.Rounded.Delete,
                                         contentDescription = "Delete",
-                                        tint = Color.White,
+                                        tint = if (dismissState.targetValue == SwipeToDismissBoxValue.EndToStart) Color.White else Color.Transparent,
                                         modifier = Modifier.scale(scale)
                                     )
                                 }

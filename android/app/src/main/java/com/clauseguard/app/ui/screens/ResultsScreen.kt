@@ -32,6 +32,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.buildAnnotatedString
@@ -44,12 +45,23 @@ import androidx.compose.ui.unit.sp
 import com.clauseguard.app.models.AnalysisReport
 import com.clauseguard.app.models.ClauseRiskScore
 
+// Extension function to format clause category from backend format
+private fun String.formatClauseCategory(): String {
+    return this.substringAfter("other:")
+        .replace("_", " ")
+        .split(" ")
+        .joinToString(" ") { word ->
+            word.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
+        }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ResultsScreen(
     report: AnalysisReport,
     onBack: () -> Unit
 ) {
+    val context = LocalContext.current
     val haptics = LocalHapticFeedback.current
     val flaggedClauses = remember(report) {
         report.clauses.filter {
@@ -208,6 +220,7 @@ fun ResultsScreen(
                     onClick = {
                         haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                         clipboardManager.setText(buildAnnotatedString { append(report.negotiation_script) })
+                        android.widget.Toast.makeText(context, "Strategy copied to clipboard!", android.widget.Toast.LENGTH_SHORT).show()
                         showStrategySheet = false
                     },
                     modifier = Modifier
@@ -285,7 +298,7 @@ private fun ExpandableClauseCard(clause: ClauseRiskScore, onViewStrategy: () -> 
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = clause.classification.category,
+                    text = clause.classification.category.formatClauseCategory(),
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp,
                     color = Color.White
