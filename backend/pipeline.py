@@ -250,7 +250,13 @@ async def run_full_pipeline(raw_ocr_text: str) -> AnalysisReport:
 
 
     # --- Stage 4: Classification Agent (LLM — concurrent confirmation) ---
-    tasks = [classification_agent.analyze(clause, cands) for clause, cands in zip(cleaned_clauses, candidates)]
+    sem = asyncio.Semaphore(3)  # Strictly limit to 3 concurrent API calls
+
+    async def bounded_analyze(clause, cands):
+        async with sem:
+            return await classification_agent.analyze(clause, cands)
+
+    tasks = [bounded_analyze(clause, cands) for clause, cands in zip(cleaned_clauses, candidates)]
     results = await asyncio.gather(*tasks, return_exceptions=True)
     
     classifications = []
